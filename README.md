@@ -67,6 +67,7 @@ This project implements and simulates various blockchain consensus protocols usi
 - `GR-PBFT/GR-PBFT.cc`: Gossip-based Reputation PBFT implementation
 - `POS/POS.cc`: Proof of Stake implementation
 - `POW/POW.cc`: Proof of Work implementation
+- `FHIRChain`：Medical blockchain system FHIRChain
 
 ## Performance Metrics
 
@@ -90,13 +91,7 @@ The simulation collects and calculates various performance metrics:
 2. Run the simulation:
    ```bash
    # Example for PBFT simulation
-   ./waf --run "PBFT-simulation --nodes=10 --rounds=30"
-   ```
-
-3. Enable DoS attack simulation:
-   ```bash
-   # Example with DoS attack enabled
-   ./waf --run "PBFT-simulation --nodes=10 --rounds=30 --enableDoS=true --attackRound=20"
+   ./ns3 run scratch/pbft-simulator.cc
    ```
 
 ### Output Analysis
@@ -190,7 +185,7 @@ The simulation produces detailed logs with NS_LOG_INFO statements that track:
 - `GR-PBFT/GR-PBFT.cc`：基于Gossip的信誉PBFT实现
 - `POS/POS.cc`：权益证明实现
 - `POW/POW.cc`：工作量证明实现
-
+- `FHIRChain`：医疗区块链系统FHIRChain
 ## 性能指标
 
 仿真收集并计算各种性能指标：
@@ -213,13 +208,7 @@ The simulation produces detailed logs with NS_LOG_INFO statements that track:
 2. 运行仿真：
    ```bash
    # PBFT仿真示例
-   ./waf --run "PBFT-simulation --nodes=10 --rounds=30"
-   ```
-
-3. 启用DoS攻击仿真：
-   ```bash
-   # 启用DoS攻击的示例
-   ./waf --run "PBFT-simulation --nodes=10 --rounds=30 --enableDoS=true --attackRound=20"
+   ./ns3 run scratch/pbft-simulator.cc
    ```
 
 ### 输出分析
