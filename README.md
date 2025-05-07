@@ -117,10 +117,7 @@ The simulation produces detailed logs with NS_LOG_INFO statements that track:
 
 ## Recent Updates
 
-- All commented NS_LOG_INFO() functions have been uncommented to enable full debugging information
-- All Chinese messages have been translated to English for better international accessibility
-- Chinese comments throughout the codebase have been translated to English
-- Fixed boolean parameter typo in DoS attack setup function
+- This code repository is mainly used to simulate our proposed VS-PBFT consensus algorithm, and the Heart-Disease dataset is used as input data for the experiments. The intelligent medical diagnosis model mentioned in this paper is conceptual and not implemented in this code.
 
 ---
 
@@ -242,8 +239,4 @@ The simulation produces detailed logs with NS_LOG_INFO statements that track:
 - 支持正常操作和攻击场景
 
 ## 最近更新
-
-- 已取消所有注释的NS_LOG_INFO()函数，以启用完整的调试信息
-- 所有中文消息已翻译为英文，以提高国际可访问性
-- 代码库中的中文注释已全部翻译为英文
-- 修复了DoS攻击设置函数中的布尔参数拼写错误 
+本代码仓库主要用于仿真我们提出的VS-PBFT共识算法，实验使用了Heart-Disease数据集作为输入数据。本文中提到的智能医疗诊断模型为概念性设计，未在本代码中实现。
