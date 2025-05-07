@@ -67,7 +67,9 @@ This project implements and simulates various blockchain consensus protocols usi
 - `GR-PBFT/GR-PBFT.cc`: Gossip-based Reputation PBFT implementation
 - `POS/POS.cc`: Proof of Stake implementation
 - `POW/POW.cc`: Proof of Work implementation
-- `FHIRChain`：Medical blockchain system FHIRChain
+- `FHIRChain/`: Medical blockchain system FHIRChain
+  - `FHIRChain/src/`: Core source code for the medical blockchain system
+  - `FHIRChain/scratch/`: Simulation scripts and configurations for FHIRChain experiments
 
 ## Performance Metrics
 
@@ -185,7 +187,10 @@ The simulation produces detailed logs with NS_LOG_INFO statements that track:
 - `GR-PBFT/GR-PBFT.cc`：基于Gossip的信誉PBFT实现
 - `POS/POS.cc`：权益证明实现
 - `POW/POW.cc`：工作量证明实现
-- `FHIRChain`：医疗区块链系统FHIRChain
+- `FHIRChain/`：医疗区块链系统FHIRChain
+  - `FHIRChain/src/`：核心源代码，实现基于 FHIR 标准的医疗区块链系统
+  - `FHIRChain/scratch/`：仿真脚本，用于配置和运行医疗区块链实验
+
 ## 性能指标
 
 仿真收集并计算各种性能指标：
