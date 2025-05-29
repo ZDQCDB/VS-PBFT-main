@@ -225,7 +225,7 @@ namespace ns3{
             NS_LOG_INFO("Average message copies count: " << message_copies_count << " times");
 
             // Calculate communication overhead
-            double total_comm_cost = (total_message_count+round_number)*49*1.0/1024;
+            double total_comm_cost = total_message_count*49*1.0/1024;
             NS_LOG_INFO("Total message count: " << total_message_count << " times");
             NS_LOG_INFO("Total communication cost: " << total_comm_cost << "KB");
 
