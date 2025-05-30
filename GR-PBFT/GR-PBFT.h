@@ -17,54 +17,36 @@ namespace ns3 {
 class Socket;
 class Address;
 
-// PBFTPhase: Enumeration type
+// PBFTPhase：枚举类型
 enum PBFTPhase {
-    CLIENT_CHANGE,  // 0        Client change
-    NEW_ROUND,      // 1        New round
-    REQUEST,        // 2        Request
-    PRE_PREPARED,   // 3        Pre-prepared phase
-    PREPARED,       // 4        Prepared phase
-    COMMITTED,      // 5        Committed phase
-    REPLY,          // 6        Reply phase
-    VIEW_CHANGE     // 7        View change
+    CLIENT_CHANGE,  // 0        客户端变更
+    NEW_ROUND,      // 1        新回合
+    REQUEST,        // 2        请求
+    PRE_PREPARED,   // 3        预准备阶段
+    PREPARED,       // 4        准备阶段
+    COMMITTED,      // 5        提交阶段
+    REPLY,          // 6        回复阶段
+    VIEW_CHANGE     // 7        视图变更
 };
 
 struct Transaction {
-    int view;               // View number
-    int value;              // Transaction value
-    int prepare_vote;       // Number of votes in the prepared phase
-    int commit_vote;        // Number of votes in the committed phase
+    int view;               //视图编号
+    int value;              //交易的值
+    int prepare_vote;       //准备阶段的投票数
+    int commit_vote;        //提交阶段的投票数
 };
 
-// static const uint32_t NETWORK_SIZE = 10;  // network size: num of nodes
-// 心脏病数据结构
-struct HeartData {
-    int age;
-    int sex;
-    int cp;
-    int trestbps;
-    int chol;
-    int target;  // 诊断结果
-    std::string toString() {
-        return std::to_string(age) + "," + 
-               std::to_string(sex) + "," + 
-               std::to_string(cp) + "," + 
-               std::to_string(trestbps) + "," + 
-               std::to_string(chol) + ":" + 
-               std::to_string(target);
-    }
-};
+//static const uint32_t NETWORK_SIZE = 10;  // network size: num of nodes
 
 class NodeApp : public Application {
 public:
     NodeApp (void);
     virtual ~NodeApp (void);
-    void LoadHeartDataset(const std::string& filePath);
 
     static TypeId GetTypeId (void);
-    uint32_t N; // Possibly used to store node ID
+    uint32_t N; // 可能用于存储节点编号
 
-    // Methods to set and get node-related parameters
+    // 设置和获取节点相关参数的方法
     void SetPeersAddresses (std::vector<Ipv4Address> peers);
     void SetNodeInternetAddress(Ipv4Address internet);
     void SetNodeId(uint8_t id);
@@ -77,19 +59,19 @@ public:
     uint8_t GetIsLeader() const;
     uint8_t GetClientId() const;
 
-    // Gossip protocol related parameters
+    // Gossip协议相关参数
     void SetGossipFanout(int fanout);
     int GetGossipFanout() const;
     void SetGossipRounds(int rounds);
     int GetGossipRounds() const;
 
-    // Transaction-related functions
+    // 交易相关函数
     void SubmitTransaction(uint32_t transactionId);
     void ConfirmTransaction(uint32_t transactionId);
     double CalculateTPS();
     double CalculateAverageLatency();
 
-    // Other public methods
+    // 其他公共方法
     std::string getPacketContent(Ptr<Packet> packet, Address from);
     void SendTX(uint8_t data[], int num);
     void SendTXWithDelay(unsigned char* data, int size, double delay);
@@ -99,7 +81,7 @@ public:
     void SendPacket(Ptr<Socket> socketClient, Ptr<Packet> p);
 
 protected:
-    Ipv4Address m_local; // Store IP address
+    Ipv4Address m_local; // 存储 IP 地址
     virtual void StartApplication (void);
     virtual void StopApplication (void);
     void HandleRead (Ptr<Socket> socket);
@@ -112,7 +94,7 @@ protected:
     float getRandomDelay();
     void log_message_counts();
 
-public:  // Move member variables that need external access to the public section
+public:  // 将需要外部访问的成员变量移到public区域
     uint8_t m_id;
     uint8_t is_leader;
     uint8_t leader_id;
@@ -129,12 +111,12 @@ private:
     std::map<int, Transaction> transactions;
     std::vector<int> ledger;
 
-    // Gossip protocol parameters
+    // Gossip协议参数
     int m_gossipFanout;
     int m_gossipRounds;
     std::set<std::string> m_processedMessages;
 
-    // Performance statistics related variables
+    // 性能统计相关变量
     Time m_roundStartTime;
     Time m_roundEndTime;
     Time m_totalTime;
@@ -147,21 +129,21 @@ private:
     std::vector<Time> m_transactionStartTimes;
     std::vector<Time> m_transactionEndTimes;
 
-    // DOS attack related parameters
-    bool            m_enableDosAttack;                 // Whether DOS attack is enabled
-    int             m_dosAttackRound;                  // The round in which the attack is launched
-    int             m_dosAttackCount;                  // Number of attack attempts
-    std::vector<int> m_maliciousNodes;                 // List of malicious nodes
-    std::map<int, int> m_receivedAttackCount;          // Record the number of attack messages received by each node
-    bool            m_leaderParalyzed;                 // Whether the leader node is paralyzed
-    bool            m_attackSuccess;                   // Whether the attack was successful
-    int             m_messageThreshold;                // Message threshold; exceeding this value indicates node paralysis
-    Time            m_lastAttackDetectionTime;         // Last detected attack time
-    int             m_attackDetectionWindow;           // Attack detection window (milliseconds)
-    int m_sequenceNumber;  // Added member variable
-    std::map<int, std::string> m_lastReceivedMessage;  // Added member variable
+    // DOS攻击相关参数
+    bool            m_enableDosAttack;                 // 是否启用DOS攻击
+    int             m_dosAttackRound;                  // 在哪一轮发起攻击
+    int             m_dosAttackCount;                  // 攻击次数
+    std::vector<int> m_maliciousNodes;                 // 恶意节点列表
+    std::map<int, int> m_receivedAttackCount;          // 记录每个节点收到的攻击消息数量
+    bool            m_leaderParalyzed;                 // 主节点是否瘫痪
+    bool            m_attackSuccess;                   // 攻击是否成功
+    int             m_messageThreshold;                // 消息阈值，超过此值认为节点瘫痪
+    Time            m_lastAttackDetectionTime;         // 上次检测到攻击的时间
+    int             m_attackDetectionWindow;           // 攻击检测窗口(毫秒)
+    int m_sequenceNumber;  // 添加成员变量
+    std::map<int, std::string> m_lastReceivedMessage;  // 添加成员变量
     
-    // DOS attack related functions
+    // DOS攻击相关函数
     void SetupDosAttack(bool enable, int attackRound, int attackCount, 
                         const std::vector<int>& maliciousNodes, int messageThreshold);
     void LaunchDosAttack(int m_id);
