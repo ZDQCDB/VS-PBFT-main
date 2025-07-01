@@ -17,7 +17,6 @@ class Address;
 class Socket;
 class Packet;
 
-// PBFThase: Enumeration type
 enum PBFTPhase {                // Enumeration value comments
     CLIENT_CHANGE,  // 0        Client change
     NEW_ROUND,      // 1        New round
@@ -95,28 +94,23 @@ class NodeApp : public Application
     void SubmitTransaction(uint32_t transactionId);
     void ConfirmTransaction(uint32_t transactionId);
     double CalculateTPS();
-    // Reputation-related member variables and methods
-    double m_reputation = 50.0;  // Reputation
-    // Update reputation
+    double m_reputation = 50.0;
     void UpdateReputation(bool success);
-    // Check whether it meets the conditions for participating in consensus
     bool CanParticipateInConsensus() const;  
 
-    // DOS attack related parameters
-    bool            m_enableDosAttack;                 // Whether to enable DOS attack
-    int             m_dosAttackRound;                  // Which round to launch the attack
-    int             m_dosAttackCount;                  // Number of attacks
-    std::vector<int> m_maliciousNodes;                 // List of malicious nodes
-    std::map<int, int> m_receivedAttackCount;          // Record the number of attack messages received by each node
-    bool            m_leaderParalyzed;                 // Whether the main node is paralyzed
-    bool            m_attackSuccess;                   // Whether the attack was successful
-    int             m_messageThreshold;                // Message threshold, exceeding this value is considered node paralysis
-    Time            m_lastAttackDetectionTime;         // Last detected attack time
-    int             m_attackDetectionWindow;           // Attack detection window (milliseconds)
-    int m_sequenceNumber;  // Add member variable
-    std::map<int, std::string> m_lastReceivedMessage;  // Add member variable
+    bool            m_enableDosAttack;
+    int             m_dosAttackRound;
+    int             m_dosAttackCount;
+    std::vector<int> m_maliciousNodes;
+    std::map<int, int> m_receivedAttackCount;
+    bool            m_leaderParalyzed;
+    bool            m_attackSuccess;
+    int             m_messageThreshold;
+    Time            m_lastAttackDetectionTime;
+    int             m_attackDetectionWindow;
+    int m_sequenceNumber;
+    std::map<int, std::string> m_lastReceivedMessage;
 
-    // DOS attack related functions
     void SetupDosAttack(bool enable, int attackRound, int attackCount, 
                         const std::vector<int>& maliciousNodes, int messageThreshold);
     void LaunchDosAttack(int m_id);
