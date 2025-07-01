@@ -8,7 +8,7 @@
 #include "ns3/traced-callback.h"
 #include "ns3/address.h"
 #include "ns3/boolean.h"
-#include "ns3/socket.h" // Add this line to include the complete definition of Socket class
+#include "ns3/socket.h"
 #include <map>
 
 namespace ns3 {
@@ -17,8 +17,7 @@ class Address;
 class Socket;
 class Packet;
 
-//PBFTPhase: enum type
-enum PBFTPhase {                //Enum value comments
+enum PBFTPhase {
     CLIENT_CHANGE,  // 0        Client change
     NEW_ROUND,      // 1        New round
     REQUEST,        // 2        Request
@@ -36,7 +35,6 @@ struct Transaction {
     int prepare_vote;       //Number of votes in prepare phase
     int commit_vote;        //Number of votes in commit phase
 };
-// 心脏病数据结构
 struct HeartData {
     int age;
     int sex;
@@ -113,30 +111,25 @@ class NodeApp : public Application
     void SubmitTransaction(uint32_t transactionId);
     void ConfirmTransaction(uint32_t transactionId);
     double CalculateTPS();
-    // Reputation related member variables and methods
-    double m_reputation = 50.0;  // Reputation value
-    // Update reputation
+    double m_reputation = 50.0;
     void UpdateReputation(bool success);
-    // Check if eligible to participate in consensus
     bool CanParticipateInConsensus() const;  
     void UpdateNodeReputation(int node_id, double reputation);
     double GetNodeReputation(int node_id);
 
-    // DOS attack related parameters
-    bool            m_enableDosAttack;                 // Whether to enable DOS attack
-    int             m_dosAttackRound;                  // In which round to launch the attack
-    int             m_dosAttackCount;                  // Number of attacks
-    std::vector<int> m_maliciousNodes;                 // List of malicious nodes
-    std::map<int, int> m_receivedAttackCount;          // Record the number of attack messages received by each node
-    bool            m_leaderParalyzed;                 // Whether the leader node is paralyzed
-    bool            m_attackSuccess;                   // Whether the attack is successful
-    int             m_messageThreshold;                // Message threshold, exceeding this value means the node is paralyzed
-    Time            m_lastAttackDetectionTime;         // Time of last detected attack
-    int             m_attackDetectionWindow;           // Attack detection window (milliseconds)
-    int m_sequenceNumber;  // Added member variable
-    std::map<int, std::string> m_lastReceivedMessage;  // Added member variable
+    bool            m_enableDosAttack;
+    int             m_dosAttackRound;
+    int             m_dosAttackCount;
+    std::vector<int> m_maliciousNodes;
+    std::map<int, int> m_receivedAttackCount;
+    bool            m_leaderParalyzed;
+    bool            m_attackSuccess;
+    int             m_messageThreshold;
+    Time            m_lastAttackDetectionTime;
+    int             m_attackDetectionWindow;
+    int m_sequenceNumber;
+    std::map<int, std::string> m_lastReceivedMessage;
 
-    // DOS attack related functions
     void SetupDosAttack(bool enable, int attackRound, int attackCount, 
                         const std::vector<int>& maliciousNodes, int messageThreshold);
     void LaunchDosAttack(int m_id);
