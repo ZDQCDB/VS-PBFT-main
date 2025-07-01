@@ -21,7 +21,7 @@ enum FHIRResourceType {
   IMMUNIZATION,
   DIAGNOSTIC_REPORT,
   CONDITION,
-  HEART_DISEASE    // 添加心脏病数据类型
+  HEART_DISEASE
 };
 
 // PBFT共识阶段枚举
@@ -139,7 +139,6 @@ public:
   std::vector<char> ledger;                           // 账本
   std::vector<FHIRResource*> fhirLedger;              // FHIR资源账本
   
-  // PBFT相关变量
   int             N;                                  // 节点总数
   int             is_leader;                          // 是否为领导者
   int             sec_num;                            // 交易序列号
@@ -152,7 +151,6 @@ public:
   static const int arraySize = 1000;                    
   Transaction transactions[arraySize];                
 
-  // 时间测量
   Time round_start_time;
   Time round_end_time;
   Time total_time;
@@ -160,43 +158,36 @@ public:
   Time latency_end_time;
   Time audit_trail_start_time;
   Time audit_trail_end_time;
-  std::vector<double> audit_trail_times;              // 审计追踪时间记录
-  bool enable_audit;                                  // 是否启用审计
+  std::vector<double> audit_trail_times;
+  bool enable_audit;
   
-  // 消息统计
   int round_message_count;
   int total_message_count;
   int message_copies_count;
 
-  // 应用生命周期方法
   virtual void StartApplication(void);
   virtual void StopApplication(void);
 
-  // 消息处理方法
   void HandleRead(Ptr<Socket> socket);
   std::string getPacketContent(Ptr<Packet> packet, Address from);
   
-  // 交易相关方法
   void SendTX(uint8_t data[], int num);
   void SendTXWithDelay(uint8_t data[], int size, double delay);
   void initiateRound(void);
   void changeView(void);
   void sendStringMessage(std::string data);
   
-  // 信息打印与统计
   void printInformation();
   void PrintStatistics();
   
-  // FHIR资源加载方法
   void LoadFHIRResources(const std::string& filePath);
   std::string GenerateAuditTrail(const FHIRResource& resource, const std::string& action);
   
 private:
-  // FHIR资源数据集
   std::vector<FHIRResource*> fhirDataset;
   std::vector<FHIRPatient> patientDataset;
   std::vector<FHIRObservation> observationDataset;
-  std::vector<FHIRHeartDisease> heartDiseaseDataset; // 心脏病数据集
+  std::vector<FHIRHeartDisease> heartDiseaseDataset;
 };
 
 } // namespace ns3
