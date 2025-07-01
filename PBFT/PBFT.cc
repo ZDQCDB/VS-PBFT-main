@@ -61,12 +61,12 @@ namespace ns3{
     }
     Time round_start_time;
     Time round_end_time;
-    Time total_time = Seconds(0); // 用于累加所有轮次的总耗时
+    Time total_time = Seconds(0);
     Time latency_start_time;
     Time latency_end_time;
-    int round_message_count = 0;  // Current round message count
-    int total_message_count = 0;  // Total message count for all rounds
-    int message_copies_count = 0; // Total message copies count
+    int round_message_count = 0;
+    int total_message_count = 0;
+    int message_copies_count = 0;
 
     void NodeApp::StartApplication() {
         std::srand(static_cast<unsigned int>(time(0)));
@@ -77,7 +77,6 @@ namespace ns3{
         {
             TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
             m_socket = Socket::CreateSocket(GetNode(), tid);
-            // Note: This is equivalent to monitoring all network card IP addresses.
             InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), 7071);
             m_socket->Bind(local); // Bind the local IP and port
             m_socket->Listen();
@@ -103,9 +102,8 @@ namespace ns3{
             Simulator::Schedule(Seconds(getRandomDelay()), &NodeApp::initiateRound, this);
         }
         
-        // Setting DOS attack parameters (disabled by default)
-        std::vector<int> maliciousNodes = {5, 6}; // Nodes 5 and 6 are malicious nodes
-        SetupDosAttack(false, 30, 1000, maliciousNodes, 20); // Round 30, send 100 attacks, threshold 20, set to True to enable
+        std::vector<int> maliciousNodes = {5, 6};
+        SetupDosAttack(false, 30, 1000, maliciousNodes, 20);
     }
 
     void NodeApp::StopApplication(){
@@ -113,27 +111,22 @@ namespace ns3{
             NS_LOG_INFO("At time " << Simulator::Now().GetSeconds() << " Stop");
         }
     }
-    // Update reputation: +10 for successful consensus, -10 for failed consensus
     void NodeApp::UpdateReputation(bool success) {
         if (success) {
-            m_reputation += 0.1;  // Successful consensus participation, reputation +1
+            m_reputation += 0.1;
         } else {
-            m_reputation -= 0.5;  // Failed consensus participation, reputation -10
+            m_reputation -= 0.5;
         }
 
-        // Ensure reputation is not below 0
         if (m_reputation < 0) {
             m_reputation = 0;
         }
-        // Ensure reputation does not exceed 100
         if(m_reputation>100){
             m_reputation=100;
         }
-        // Print updated reputation
         NS_LOG_INFO("Node " << m_id << " reputation updated to: " << m_reputation);
     }
 
-    // Determine if node can participate in consensus (reputation >= 30)
     bool NodeApp::CanParticipateInConsensus() const {
         return m_reputation > 30;
     }
@@ -150,21 +143,17 @@ namespace ns3{
         if(round_number==30){
             NS_LOG_INFO(round_number<<" Round Finished Successfully!");
             
-            //Calculate TPS
             double TPS = round_number*1000 / (total_time.GetSeconds()*N);
             NS_LOG_INFO("Total consensus duration: " << total_time.GetSeconds() << " ms.");
             NS_LOG_INFO("Transaction throughput: " << TPS << "tps");
 
-            //Calculate average transaction latency
             Time totalLantency=latency_end_time-latency_start_time;
             double avgLantency = totalLantency.GetSeconds()*N / round_number;
             NS_LOG_INFO("Total latency: " << totalLantency.GetSeconds() << "ms.");
             NS_LOG_INFO("Average transaction latency: " << avgLantency << "ms");
 
-            //Calculate total messages
             NS_LOG_INFO("Average message copies count: " << message_copies_count << " times");
 
-            //Calculate communication overhead
             double total_comm_cost = total_message_count*49*1.0/1024;
             NS_LOG_INFO("Total message count: " << total_message_count << " times");
             NS_LOG_INFO("Total communication cost: " << total_comm_cost << "KB");            
@@ -271,7 +260,7 @@ namespace ns3{
                 uint8_t client_id_uint = static_cast<uint8_t>(client_id);
                 int state = convertCharToInt(msg[1]);
 
-                // NS_LOG_INFO(state<<"======>"<<msg<<"-=====>"<<m_id<<"====>"<<client_id);
+                NS_LOG_INFO(state<<"======>"<<msg<<"-=====>"<<m_id<<"====>"<<client_id);
         
                 // Client should not process messages: PRE-PREPARED,PREPARED, COMMIT, VIEW-CHANGE 
                 if(m_id == client_id_uint && state != REPLY && state != NEW_ROUND && state!=CLIENT_CHANGE){
@@ -296,7 +285,6 @@ namespace ns3{
                             Creating a <request message> and broadcast it by client
                         */
 
-                        // Only Client should handle NEW-ROUND by send a request to the blockchain
                         if(m_id != client_id_uint){
                             // NS_LOG_ERROR("Catch1 state=>"<<state<<" ID=>"<<m_id);
                             return;
@@ -315,7 +303,6 @@ namespace ns3{
                             5. sequence-number          = 0             // NOT SET
                             6. primary signed           = 0             // NOT SET
                         */
-                        // Random value for request (Primary should assign sequence number and sign it)
                         data[0] = convertIntToChar(rand() % 9);
                         data[2] = convertIntToChar(m_id);
                         data[3] = convertIntToChar(client_id);
@@ -337,7 +324,6 @@ namespace ns3{
                             should sign the request and broadcast <pre-prepare message> by primary
                         */
 
-                        // Only leader should proccess request by signing it and broadcast
                         if (is_leader==0){
                             // NS_LOG_ERROR("Catch2 state=>"<<state<<" ID=>"<<m_id);
                             return;
@@ -444,22 +430,17 @@ namespace ns3{
                         int index = convertCharToInt(msg[3]);  
                         int count = transactions[index].prepare_vote;
 
-                        // 1. validate: check client id and view number and primary sign
                         if(convertCharToInt(msg[3]) == client_id && convertCharToInt(msg[4]) == view_number && convertCharToInt(msg[6])==1){
 
-                            // 2. Add prepare message counter and log
                             prepare_count++;
                             log_message_counts();
 
-                            // 3. Vote
                             transactions[index].prepare_vote++;
                             count++;
                             NS_LOG_INFO(m_id<<" Voted(prepare) to "<<count<<" messages.");   
                         }
-                        // 4. Check reaching to threshold (N/2 + 1)
                         if (count >= N/2 + 1){
 
-                            // 5. If it reached  to threshold, Reset votes (Not to send commit again!)
                             transactions[index].prepare_vote=0;
 
                             // 6. Construct commit message
@@ -479,10 +460,8 @@ namespace ns3{
                             data[5] = msg[5];
                             data[6] = msg[6];
 
-                            // 7. Set message state to COMMITED
                             data[1] = convertIntToChar(COMMITTED);     
 
-                            // 8. broadcast commited message       
                             std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
                             NS_LOG_INFO("Message(commit) Broadcasts => " << dataString<<"\n\n");
                             sendStringMessage(dataString);
@@ -516,10 +495,8 @@ namespace ns3{
                             NS_LOG_INFO(m_id<<" Voted(commit) to "<<count<<" messages.");  
                         }
 
-                        // 4. Check reaching to threshold (N/2 + 1)
                         if (count >= N/2 + 1)
                         {
-                            // 5. If it reached  to threshold, Reset votes (Not to send commit again!)
                             transactions[index].commit_vote=0;
 
                             // 6. Proccess transaction => x^2 % 10
@@ -563,7 +540,6 @@ namespace ns3{
                         break;
                     }
                     case REPLY:{
-                        // Only Client should handle REPLY because it's the result of its own transaction(request)
                         if(m_id != client_id_uint){
                             // NS_LOG_ERROR("Catch3 state=>"<<state<<" ID=>"<<m_id);
                             return;
@@ -580,20 +556,17 @@ namespace ns3{
                         // 2. Start a new round after all replys arrived (by a larger delay to make sure last round is finished)
                         if(reply_count==N-1){
 
-                            // 记录结束时间
                             round_end_time = Simulator::Now();
                             latency_end_time = Simulator::Now();
                             NS_LOG_WARN("Consensus end time: " << round_end_time.GetSeconds());
                             NS_LOG_WARN("Simulator end time: " << latency_end_time.GetSeconds());
-                            // 计算当前轮次的耗时
                             Time round_duration = round_end_time - round_start_time;
-                            total_time += round_duration;  // 累加总耗时
+                            total_time += round_duration;
                             NS_LOG_INFO("Round completed in " << round_duration.GetSeconds() << " seconds.");
                             
-                            // 计算当前轮次的消息数量（根据各阶段的消息数量进行加和）
                             round_message_count = request_count + preprepare_count + prepare_count + commit_count + reply_count;
                             message_copies_count += preprepare_count + prepare_count + commit_count;
-                            total_message_count += round_message_count;  // 累加总消息数量
+                            total_message_count += round_message_count;
                             
                             // Update Sequence number of client
                             sec_num++;
@@ -733,7 +706,6 @@ namespace ns3{
         NodeApp::SendTX(d, sizeof(message));    
     }
 
-   // Broadcast transactions to all neighbor nodes
     void NodeApp::SendTX(uint8_t data[], int size){
         double delay = getRandomDelay();
         SendTXWithDelay(data, size, delay);
@@ -806,10 +778,8 @@ namespace ns3{
     }
 
     void NodeApp::DetectDosAttack(int attackerId) {        
-        // Get most recently received message
         std::string lastMessage = m_lastReceivedMessage[attackerId];
         
-        // Check if message is valid (check signature)
         bool isValidMessage = (lastMessage[6] == '1');
         
         // Get current time
@@ -829,28 +799,25 @@ namespace ns3{
         bool sendValidMessage = (rand() / (RAND_MAX + 1.0)) < probability;
 
         if (sendValidMessage) {
-            // Construct valid message
-            data[0] = convertIntToChar(1); // Valid value
+            data[0] = convertIntToChar(1);
             data[1] = convertIntToChar(REQUEST);
             data[2] = convertIntToChar(m_id);
             data[3] = convertIntToChar(leader_id);
             data[4] = convertIntToChar(view_number);
-            data[5] = convertIntToChar(m_sequenceNumber++); // Correct sequence number
-            data[6] = '1'; // Add signature
+            data[5] = convertIntToChar(m_sequenceNumber++);
+            data[6] = '1';
             NS_LOG_INFO("Attacker node " << m_id << " constructs correct message");
         } else {
-            // Construct invalid message
-            data[0] = convertIntToChar(rand() % 9); // Random value
+            data[0] = convertIntToChar(rand() % 9);
             data[1] = convertIntToChar(REQUEST);
             data[2] = convertIntToChar(m_id);
             data[3] = convertIntToChar(leader_id);
-            data[4] = convertIntToChar(rand() % 100); // Random view number
-            data[5] = convertIntToChar(rand() % 100); // Random sequence number
-            data[6] = '0'; // No signature
+            data[4] = convertIntToChar(rand() % 100);
+            data[5] = convertIntToChar(rand() % 100);
+            data[6] = '0';
             NS_LOG_INFO("Attacker node " << m_id << " constructs incorrect message");
         }
         
-        // Convert array to string
         std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
         
         // Send message to leader node
@@ -862,7 +829,6 @@ namespace ns3{
             Ptr<Packet> p = Create<Packet>(reinterpret_cast<const uint8_t*>(d), dataString.size());
             leaderSocket->Send(p);
             
-            // Save most recent message for detection
             m_lastReceivedMessage[m_id] = dataString;
             
             NS_LOG_INFO("Attacker node " << m_id << " launched DOS attack against leader node " << leader_id);
@@ -886,7 +852,7 @@ namespace ns3{
         m_messageThreshold = messageThreshold;
         m_leaderParalyzed = false;
         m_attackSuccess = false;
-        m_attackDetectionWindow = 1000; // 1 second detection window
+        m_attackDetectionWindow = 1000;
         m_lastAttackDetectionTime = Simulator::Now();
         
         // Initialize attack counter
