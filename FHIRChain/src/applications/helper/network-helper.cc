@@ -1,5 +1,5 @@
-#include "network-helper.h" // 保持原有include路径
-#include "../model/node-app.h" // 修改为正确的相对路径
+#include "network-helper.h"
+#include "../model/node-app.h"
 #include "ns3/integer.h"
 #include "ns3/names.h"
 #include "ns3/ipv4.h"
@@ -23,8 +23,7 @@ NetworkHelper::Install(NodeContainer c)
   ApplicationContainer apps;
 
   for (uint32_t i = 0; i < c.GetN(); ++i) {
-    Ptr<NodeApp> app = CreateObject<NodeApp>(); // 使用NodeApp而不是FHIRNodeApp
-
+    Ptr<NodeApp> app = CreateObject<NodeApp>();
     // 设置节点ID
     app->m_id = i;
 
