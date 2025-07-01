@@ -17,7 +17,6 @@ class Address;
 class Socket;
 class Packet;
 
-// PBFTPhase: Enumeration type
 enum PBFTPhase {
     CLIENT_CHANGE,  // 0        Client change
     NEW_ROUND,      // 1        New round
@@ -29,7 +28,6 @@ enum PBFTPhase {
     VIEW_CHANGE     // 7        View change
 };
 
-// NAC-PBFT Network State Enumeration
 enum NetworkState {
     GOOD,           // 0        Good network state
     NORMAL,         // 1        Normal network state
@@ -42,14 +40,13 @@ struct Transaction {
     int prepare_vote;       // Number of votes in the prepared phase
     int commit_vote;        // Number of votes in the committed phase
 };
-// 心脏病数据结构
 struct HeartData {
     int age;
     int sex;
     int cp;
     int trestbps;
     int chol;
-    int target;  // 诊断结果
+    int target;
     std::string toString() {
         return std::to_string(age) + "," + 
                std::to_string(sex) + "," + 
@@ -91,7 +88,6 @@ class NodeApp : public Application
     static const int arraySize = 100;                    // Control total transactions
     Transaction transactions[arraySize];                // Declaration of the array
 
-    // NAC-PBFT related member variables
     NetworkState    m_networkState;                     // Current network state
     double          m_networkQuality;                   // Network quality indicator (0-100)
     double          m_messageDelay;                     // Message delay
@@ -128,47 +124,44 @@ class NodeApp : public Application
     
     void printInformation();
 
-    void UpdateNetworkState(double delay);              // Update network state
-    int CalculateAdaptiveThreshold();                   // Calculate adaptive threshold
-    double GetNetworkQuality() const;                   // Get network quality
-    void SetNetworkQuality(double quality);             // Set network quality
-    NetworkState GetNetworkState() const;               // Get network state
-    double CalculateMessageDelay();                     // Calculate message delay
-    void RecordMessageDelay(double delay);              // Record message delay
-    void PrintNetworkStatus();                          // Print network status
+    void UpdateNetworkState(double delay);
+    int CalculateAdaptiveThreshold();
+    double GetNetworkQuality() const;
+    void SetNetworkQuality(double quality);
+    NetworkState GetNetworkState() const;
+    double CalculateMessageDelay();
+    void RecordMessageDelay(double delay);
+    void PrintNetworkStatus();
     int a=40;
     void PrintStatistics();
     double CalculateTPS1(double latency);
-    void CheckConsensusProgress();  // Check consensus progress
+    void CheckConsensusProgress();
 
     void SubmitTransaction(uint32_t transactionId);
     void ConfirmTransaction(uint32_t transactionId);
     double CalculateTPS();
     
-    // Additional function declarations
-    double GetReputation() const;                      // Get node reputation
-    void SetReputation(double reputation);             // Set node reputation
-    void UpdateReputation(bool success);               // Update node reputation
-    bool CanParticipateInConsensus() const;            // Check if node can participate in consensus
+    double GetReputation() const;
+    void SetReputation(double reputation);
+    void UpdateReputation(bool success);
+    bool CanParticipateInConsensus() const;
 
-    EventId m_initiateRoundEvent;  // Event ID to start consensus
-    EventId m_checkProgressEvent;  // Event ID to check progress
+    EventId m_initiateRoundEvent;
+    EventId m_checkProgressEvent;
 
-    // DOS attack related parameters
-    bool            m_enableDosAttack;                 // Enable DOS attack
-    int             m_dosAttackRound;                  // Round in which attack is launched
-    int             m_dosAttackCount;                  // Number of attack attempts
-    std::vector<int> m_maliciousNodes;                 // List of malicious nodes
-    std::map<int, int> m_receivedAttackCount;          // Record the number of attack messages received by each node
-    bool            m_leaderParalyzed;                 // Whether the leader node is paralyzed
-    bool            m_attackSuccess;                   // Whether the attack was successful
-    int             m_messageThreshold;                // Message threshold; exceeding this value indicates node paralysis
-    Time            m_lastAttackDetectionTime;         // Last detected attack time
-    int             m_attackDetectionWindow;           // Attack detection window (milliseconds)
+    bool            m_enableDosAttack;
+    int             m_dosAttackRound;
+    int             m_dosAttackCount;
+    std::vector<int> m_maliciousNodes;
+    std::map<int, int> m_receivedAttackCount;
+    bool            m_leaderParalyzed;
+    bool            m_attackSuccess;
+    int             m_messageThreshold;
+    Time            m_lastAttackDetectionTime;
+    int             m_attackDetectionWindow;
     int m_sequenceNumber;
     std::map<int, std::string> m_lastReceivedMessage;
 
-    // DOS attack related functions
     void SetupDosAttack(bool enable, int attackRound, int attackCount, 
                         const std::vector<int>& maliciousNodes, int messageThreshold);
     void LaunchDosAttack(int m_id);
