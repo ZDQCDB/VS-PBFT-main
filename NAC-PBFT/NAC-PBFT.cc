@@ -31,7 +31,6 @@ int round_number        =       0;
 int view_is_changed     =       0;
 
 int DOS_successful_count = 0;
-// 全局变量存储加载的数据
 std::vector<ns3::HeartData> heartDataset;
 
 namespace ns3{
@@ -59,9 +58,9 @@ namespace ns3{
     NodeApp::NodeApp(void){
         m_networkState = NORMAL;
         m_networkQuality = 80.0;
-        m_messageDelay = 0.03;  // Initial delay 3ms
-        m_maxDelayWindow = 10;  // Record recent 10 message delays
-        m_networkCongestionThreshold = 0.005;  // 10ms congestion threshold
+        m_messageDelay = 0.03;
+        m_maxDelayWindow = 10;
+        m_networkCongestionThreshold = 0.005;
         m_lastMessageTime = Seconds(0);
     }
 
@@ -70,12 +69,12 @@ namespace ns3{
     }
     Time round_start_time;
     Time round_end_time;
-    Time total_time = Seconds(0); // Used to accumulate total time for all rounds
+    Time total_time = Seconds(0);
     Time latency_start_time;
     Time latency_end_time;
-    int round_message_count = 0;  // Current round message count
-    int total_message_count = 0;  // Total message count for all rounds
-    int message_copies_count = 0; // Total message copies count
+    int round_message_count = 0;
+    int total_message_count = 0;
+    int message_copies_count = 0;
     void NodeApp::StartApplication() {
         std::srand(static_cast<unsigned int>(time(0)));
         latency_start_time = Simulator::Now();
@@ -85,16 +84,14 @@ namespace ns3{
         {
             TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
             m_socket = Socket::CreateSocket(GetNode(), tid);
-            // Note: This is equivalent to monitoring all network card IP addresses.
             InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), 7071);
-            m_socket->Bind(local); // Bind the local IP and port
+            m_socket->Bind(local);
             m_socket->Listen();
         }
         m_socket->SetRecvCallback(MakeCallback(&NodeApp::HandleRead, this));
         m_socket->SetAllowBroadcast(true);
 
         std::vector<Ipv4Address>::iterator iter = m_peersAddresses.begin();
-        // Establish connections to all nodes (each node to its neighbors)
         NS_LOG_INFO("node" << m_id << " start");
         printInformation();
         while (iter != m_peersAddresses.end())
@@ -106,7 +103,6 @@ namespace ns3{
             iter++;
         }
 
-        // Initialize algorithm by broadcasting 'CLIENT_CHANGE' by leader
         if (is_leader == 1) {
             Simulator::Schedule(Seconds(getRandomDelay()), &NodeApp::initiateRound, this);
         }
@@ -118,21 +114,18 @@ namespace ns3{
         Simulator::Schedule(Seconds(5.0), &NodeApp::CheckConsensusProgress, this);
         // Set DOS attack parameters (disabled by default)
         std::vector<int> maliciousNodes = {5, 6}; // Nodes 5 and 6 are malicious nodes
-        SetupDosAttack(false, 30, 1000, maliciousNodes, 20); // Round 30, send 100 attacks, threshold 20, set to True to enable
-        // 加载心脏病数据集
+        SetupDosAttack(false, 30, 1000, maliciousNodes, 20);
         if (heartDataset.empty()) {
-            LoadHeartDataset("/home/dz/ns-allinone-3.40/ns-3.40/UCI_Heart_Disease_Dataset.csv");
+            LoadHeartDataset("数据集路径");
         }
     }
 
     void NodeApp::StopApplication(){
-        // 取消所有挂起的事件
         if (is_leader == 1) {
             Simulator::Cancel(m_initiateRoundEvent);
         }
         Simulator::Cancel(m_checkProgressEvent);
         
-        // 关闭所有Socket连接
         if (m_socket) {
             m_socket->Close();
             m_socket->SetRecvCallback(MakeNullCallback<void, Ptr<Socket>>());
@@ -145,7 +138,7 @@ namespace ns3{
         }
         m_peersSockets.clear();
     }
-   // 加载医疗数据集
+
     void NodeApp::LoadHeartDataset(const std::string& filePath) {
         std::ifstream file(filePath);
         if (!file.is_open()) {
@@ -154,7 +147,6 @@ namespace ns3{
         }
         
         std::string line;
-        // 跳过标题行
         std::getline(file, line);
         
         while (std::getline(file, line)) {
@@ -177,8 +169,7 @@ namespace ns3{
             std::getline(ss, token, ',');
             data.chol = std::stoi(token);
             
-            // 跳过中间字段，直接读取最后的目标值
-            for (int i = 0; i < 7; i++) {  // 改为7而不是8
+            for (int i = 0; i < 7; i++) {
                 if (!std::getline(ss, token, ','))
                     break;
             }
@@ -195,7 +186,6 @@ namespace ns3{
 
     void NodeApp::initiateRound(void){
         NS_LOG_FUNCTION(this);
-        // Print current network status
         PrintNetworkStatus();
         
         /* Initial new round of network
@@ -203,28 +193,23 @@ namespace ns3{
             Reset network and define a new client and broadcast <client-change> message to network
             Then construct a <new-round> message and broadcast to network */          
 
-        // At the beginning of initiateRound method
         NS_LOG_INFO("Node " << m_id << " starting new consensus round, round=" << round_number << ", is leader=" << is_leader);
 
         // 1. Check round limit
         if(round_number==30){
             NS_LOG_INFO(round_number<<" Round Finished Successfully!");
             
-            // Calculate TPS
             double TPS = round_number*1000 / (total_time.GetSeconds()*N);
             NS_LOG_INFO("Total consensus duration: " << total_time.GetSeconds() << " ms.");
             NS_LOG_INFO("Transaction throughput: " << TPS << "tps");
 
-            // Calculate average transaction latency
             Time totalLantency=latency_end_time-latency_start_time;
             double avgLantency = (totalLantency.GetSeconds()*N / round_number)*a;
             NS_LOG_INFO("Total latency: " << totalLantency.GetSeconds() << "ms.");
             NS_LOG_INFO("Average transaction latency: " << avgLantency << "ms");
 
-            // Calculate total messages
             NS_LOG_INFO("Average message copies count: " << message_copies_count << " times");
 
-            // Calculate communication overhead
             double total_comm_cost = total_message_count*49*1.0/1024;
             NS_LOG_INFO("Total message count: " << total_message_count << " times");
             NS_LOG_INFO("Total communication cost: " << total_comm_cost << "KB");
@@ -259,16 +244,12 @@ namespace ns3{
         // 5. Set client who send request
         int random_client = -1;
 
-        // 使用固定的客户端选择逻辑
         if (round_number % 2 == 0) {
-            // 偶数轮使用固定客户端
             random_client = (leader_id + 1) % N;
         } else {
-            // 奇数轮使用另一个固定客户端
             random_client = (leader_id + 2) % N;
         }
 
-        // 确保客户端不是领导者
         if (random_client == leader_id) {
             random_client = (random_client + 1) % N;
         }
@@ -294,7 +275,6 @@ namespace ns3{
         data[4] = '0';
         data[5] = '0';
         data[6] = '0'; // hasn't sign yet
-        // 添加医疗数据 - 根据轮次选择一条数据
         int dataIndex = round_number % heartDataset.size();
         data[7] = heartDataset[dataIndex].toString();
         // 7. Set message state to 'CLIENT-CHANGE'
@@ -302,22 +282,21 @@ namespace ns3{
 
         // 8. Broadcast client change message
         std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
-        //NS_LOG_INFO("Message(CLIENT_CHANGE) Broadcasts => " << dataString<<"\n\n");
+        NS_LOG_INFO("Message(CLIENT_CHANGE) Broadcasts => " << dataString<<"\n\n");
         sendStringMessage(dataString);
 
-        // 9. Set message state to 'NEW-ROUND'
         data[1] = convertIntToChar(NEW_ROUND);
 
         // 10. Broadcast new round message (with larger delay)
         dataString = std::accumulate(std::begin(data), std::end(data), std::string());
-        //NS_LOG_INFO("Message(NEW_ROUND) Broadcasts => " << dataString<<"\n\n");
+        NS_LOG_INFO("Message(NEW_ROUND) Broadcasts => " << dataString<<"\n\n");
         
         std::vector<uint8_t> myVector(dataString.begin(), dataString.end());
         uint8_t* d = &myVector[0];
         NodeApp::SendTX(d, dataString.length());
         if (m_enableDosAttack && round_number == m_dosAttackRound) {
             NS_LOG_INFO("节点" << m_id << "准备在第" << round_number << "轮发起DOS攻击");
-            LaunchDosAttack(5); // 使用当前节点ID
+            LaunchDosAttack(5);
         }
     }
 
@@ -346,7 +325,7 @@ namespace ns3{
                     uint8_t client_id_uint = static_cast<uint8_t>(client_id);
                     int state = convertCharToInt(msg[1]);
 
-                    // NS_LOG_INFO(state<<"======>"<<msg<<"-=====>"<<m_id<<"====>"<<client_id);
+                    NS_LOG_INFO(state<<"======>"<<msg<<"-=====>"<<m_id<<"====>"<<client_id);
             
                     // Client should not process messages: PRE-PREPARED,PREPARED, COMMIT, VIEW-CHANGE 
                     if(m_id == client_id_uint && state != REPLY && state != NEW_ROUND && state!=CLIENT_CHANGE){
@@ -403,7 +382,7 @@ namespace ns3{
                             // 2. Set message state to to REQUEST  
                             data[1] = convertIntToChar(REQUEST);
                             std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
-                            //NS_LOG_INFO("Message(REQUEST) Broadcasts => " << dataString<<"\n\n");
+                            NS_LOG_INFO("Message(REQUEST) Broadcasts => " << dataString<<"\n\n");
                             sendStringMessage(dataString);
                         
                             break;
@@ -413,13 +392,10 @@ namespace ns3{
                                 should sign the request and broadcast <pre-prepare message> by primary
                             */
                             
-                            // 添加更多日志
                             NS_LOG_INFO("节点 " << m_id << " 收到REQUEST消息，是否为领导者=" << is_leader);
                             
-                            // 放宽领导者检查条件
                             if (is_leader == 0){
                                 NS_LOG_INFO("节点 " << m_id << " 不是领导者，忽略REQUEST消息");
-                                // 非领导者也记录请求，以便跟踪进度
                                 request_count++;
                                 return;
                             }
@@ -458,7 +434,7 @@ namespace ns3{
 
                             // 6. Broadcast pre-prepared message
                             std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
-                            //NS_LOG_INFO("Message(PRE_PREPARED) Broadcasts => " << dataString<<"\n\n");
+                            NS_LOG_INFO("Message(PRE_PREPARED) Broadcasts => " << dataString<<"\n\n");
                             sendStringMessage(dataString);
                             break;
                         }
@@ -473,7 +449,7 @@ namespace ns3{
                                 return;
                             }
 
-                            //NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
+                            NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
 
                             // 2. Add preprepare message counter and log 
                             preprepare_count++;
@@ -495,7 +471,7 @@ namespace ns3{
                             data[4] = msg[4];
                             data[5] = msg[5];
                             data[6] = msg[6];
-                            data[7] = msg[7]; // 传递医疗数据
+                            data[7] = msg[7];
 
                             // 4. Add transaction
                             // Sequence number value
@@ -512,7 +488,7 @@ namespace ns3{
 
                             // 6. broadcast prepared message  
                             std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
-                            //NS_LOG_INFO("Message(PREPARED) Broadcasts => " << dataString<<"\n\n");
+                            NS_LOG_INFO("Message(PREPARED) Broadcasts => " << dataString<<"\n\n");
                             sendStringMessage(dataString);
                             break;
                         }
@@ -521,9 +497,8 @@ namespace ns3{
                                 Should validate message, vote to valid messages and check if votes reach to threshold
                                 if it reached, broadcast <commit message> 
                             */
-                            // NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
+                            NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
 
-                            // Get current count
                             int index = convertCharToInt(msg[3]);  
                             int count = transactions[index].prepare_vote;
 
@@ -537,7 +512,7 @@ namespace ns3{
                                 // 3. Vote
                                 transactions[index].prepare_vote++;
                                 count++;
-                                //NS_LOG_INFO(m_id<<" Voted(prepare) to "<<count<<" messages.");   
+                                NS_LOG_INFO(m_id<<" Voted(prepare) to "<<count<<" messages.");   
                             }
                             // 4. Check reaching to threshold (N/2 + 1)
                             if (count >= m_adaptiveThreshold) {
@@ -561,14 +536,14 @@ namespace ns3{
                                 data[4] = msg[4];
                                 data[5] = msg[5];
                                 data[6] = msg[6];
-                                data[7] = msg[7]; // 传递医疗数据
+                                data[7] = msg[7];
 
                                 // 7. Set message state to COMMITED
                                 data[1] = convertIntToChar(COMMITTED);     
 
                                 // 8. broadcast commited message       
                                 std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
-                                //NS_LOG_INFO("Message(commit) Broadcasts => " << dataString<<"\n\n");
+                                NS_LOG_INFO("Message(commit) Broadcasts => " << dataString<<"\n\n");
                                 sendStringMessage(dataString);
                             }      
                             else{
@@ -582,7 +557,7 @@ namespace ns3{
                                 Should validate commit message, vote to valid messages and check if votes reach to threshold
                                 if it reached, proccess request and broadcast <reply message> 
                             */
-                            // NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
+                            NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
 
                             // Get current count
                             int index = convertCharToInt(msg[5]);
@@ -597,7 +572,7 @@ namespace ns3{
                                 // 3. Vote
                                 transactions[index].commit_vote++;
                                 count++;
-                                //NS_LOG_INFO(m_id<<" Voted(commit) to "<<count<<" messages.");  
+                                NS_LOG_INFO(m_id<<" Voted(commit) to "<<count<<" messages.");  
                             }
 
                             // 4. Check reaching to threshold (N/2 + 1)
@@ -608,7 +583,7 @@ namespace ns3{
 
                                 // 6. Proccess transaction => x^2 % 10
                                 int result = (convertCharToInt(msg[0])*convertCharToInt(msg[0])) % 10;
-                                //NS_LOG_INFO("Request from "<<client_id<<" done and Result is=> "<<result);
+                                NS_LOG_INFO("Request from "<<client_id<<" done and Result is=> "<<result);
 
                                 // 6. Construct reply
                                 /*- reply:
@@ -633,25 +608,21 @@ namespace ns3{
 
                                 // Increase sequence number
                                 sec_num++;
-                                //NS_LOG_INFO(result<<" Added to Ledger "<<m_id<<"!");
+                                NS_LOG_INFO(result<<" Added to Ledger "<<m_id<<"!");
 
                                 // 8. Set message state to REPLY
                                 data[1] = convertIntToChar(REPLY);     
 
                                 std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
-                                //NS_LOG_INFO("Message(REPLY) Broadcasts => " << dataString<<"\n\n");
+                                NS_LOG_INFO("Message(REPLY) Broadcasts => " << dataString<<"\n\n");
                                 sendStringMessage(dataString);
                             }else{
                                 // :|
                                 //NS_LOG_INFO("\n\n");  
                             }
-                            // 处理交易逻辑之后
-                            // 记录医疗数据到日志
                             std::string medicalData;
                             if (msg.length() > 7) {
-                                medicalData = msg.substr(7); // 提取第8位之后的所有内容作为医疗数据
-
-                                // 解析医疗数据
+                                medicalData = msg.substr(7);
                                 std::istringstream medStream(medicalData);
                                 std::string segment;
                                 std::getline(medStream, segment, ':');
@@ -671,41 +642,35 @@ namespace ns3{
                             break;
                         }
                         case REPLY:{
-                            // Only Client should handle REPLY because it's the result of its own transaction(request)
                             if(m_id != client_id_uint){
                                 // NS_LOG_ERROR("Catch3 state=>"<<state<<" ID=>"<<m_id);
                                 return;
                             } 
-                            //NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
+                            NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
 
                             // 1. Add reply counter and log
                             reply_count++;
                             log_message_counts();
 
-                            //NS_LOG_INFO("Client=> "<<client_id<<" Receive its request result=> "<<msg[0]<<" From "<<msg[2]);
-                            //NS_LOG_INFO("===========================================================\n\n");
+                            NS_LOG_INFO("Client=> "<<client_id<<" Receive its request result=> "<<msg[0]<<" From "<<msg[2]);
+                            NS_LOG_INFO("===========================================================\n\n");
 
                             // 2. Start a new round after all replys arrived (by a larger delay to make sure last round is finished)
-                            if(reply_count >= N/2){  // 从N/3提高到N/2
-                                // 记录结束时间
+                            if(reply_count >= N/2){
                                 round_end_time = Simulator::Now();
                                 latency_end_time = Simulator::Now();
                                 NS_LOG_WARN("共识结束时间：" << round_end_time.GetSeconds());
                                 NS_LOG_WARN("模拟器结束时间：" << latency_end_time.GetSeconds());
-                                // 计算当前轮次的耗时
                                 Time round_duration = round_end_time - round_start_time;
-                                total_time += round_duration;  // 累加总耗时
+                                total_time += round_duration;
                                 NS_LOG_INFO("Round completed in " << round_duration.GetSeconds() << " seconds.");
                                 
-                                // 计算当前轮次的消息数量（根据各阶段的消息数量进行加和）
                                 round_message_count = request_count + preprepare_count + prepare_count + commit_count + reply_count;
                                 message_copies_count += preprepare_count + prepare_count + commit_count;
-                                total_message_count += round_message_count;  // 累加总消息数量
+                                total_message_count += round_message_count;
                                 
-                                // Update Sequence number of client
                                 sec_num++;
 
-                                // 使用合理的延迟启动新一轮
                                 double nextRoundDelay = getRandomDelay() * 10;
                                 NS_LOG_INFO("将在 " << nextRoundDelay << "s 后开始新一轮共识");
                                 m_initiateRoundEvent = Simulator::Schedule(Seconds(nextRoundDelay), &NodeApp::initiateRound, this);
@@ -714,7 +679,7 @@ namespace ns3{
                         }
                         case VIEW_CHANGE:{
 
-                            //NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
+                            NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
 
                             // 1. Get new leader id and set it 
                             /*- view-change:
@@ -752,7 +717,7 @@ namespace ns3{
                             break;
                         }
                         default:{
-                            //NS_LOG_INFO("INVLAID MESSAGE TYPE: " << state);
+                            NS_LOG_INFO("INVLAID MESSAGE TYPE: " << state);
                             break;
                         }
 
@@ -777,7 +742,7 @@ namespace ns3{
         packetInfo[packet->GetSize()] = '\0';
         totalStream << m_bufferedData[from] << packetInfo;
         std::string totalReceivedData(totalStream.str());
-        delete[] packetInfo;  // 添加这一行释放内存
+        delete[] packetInfo;
         return totalReceivedData;
     }
 
@@ -821,7 +786,6 @@ namespace ns3{
         data[3] = '0';
         data[5] = '0';
         data[6] = '0'; 
-       // 添加医疗数据
         int dataIndex = (round_number + view_number) % heartDataset.size();
         data[7] = heartDataset[dataIndex].toString();
         // 5. Increase view number
@@ -836,7 +800,7 @@ namespace ns3{
         // 8. Broadcast view-change message
         std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
         NS_LOG_INFO("New Leader Id => " << leader_id);
-        //NS_LOG_INFO("Message(VIEW-CHANGE) Broadcasts => " << dataString<<"\n\n");
+        NS_LOG_INFO("Message(VIEW-CHANGE) Broadcasts => " << dataString<<"\n\n");
         sendStringMessage(dataString);
     }
 
@@ -848,22 +812,18 @@ namespace ns3{
 
     // Convert string message to unit_8 type and broadcast it
     void NodeApp::sendStringMessage(std::string message){
-        // 创建持久数据时，使用new[]并在lambda中正确释放
         uint8_t* persistentData = new uint8_t[message.length()];
         std::copy(message.begin(), message.end(), persistentData);
         
-        // 直接使用数据长度而不是sizeof(message)
         NodeApp::SendTX(persistentData, message.length());
         
         int msgType = convertCharToInt(message[1]);
         if (msgType == REQUEST || msgType == PRE_PREPARED || msgType == REPLY) {
-            // 确保lambda捕获数据的副本而不是引用
             Simulator::Schedule(Seconds(0.01), [this, persistentData, length = message.length()]() {
                 this->SendTX(persistentData, length);
-                delete[] persistentData;  // 只在lambda中释放内存
+                delete[] persistentData;
             });
         } else {
-            // 如果不重传，立即释放
             delete[] persistentData;
         }
     }
@@ -871,33 +831,28 @@ namespace ns3{
    // Broadcast transactions to all neighbor nodes
     void NodeApp::SendTX(uint8_t data[], int size){
         NS_LOG_FUNCTION(this);
-        double delay = CalculateMessageDelay();  // 使用自适应延迟
+        double delay = CalculateMessageDelay();
         NS_LOG_DEBUG("节点 " << m_id << " 计算的消息延迟: " << delay);
         
-        // 确保延迟不会太大
         if (delay > 0.1) {
-            delay = 0.1;  // 限制最大延迟为100ms
+            delay = 0.1;
         }
         
         SendTXWithDelay(data, size, delay);
     }
     
-    // Broadcast transactions to all neighbor nodes
     void NodeApp::SendTXWithDelay(uint8_t data[], int size, double delay){
         NS_LOG_FUNCTION(this);
-        // 记录发送时间
         Time sendTime = Simulator::Now();
         if (m_lastMessageTime.GetSeconds() > 0) {
-            // 计算与上一条消息的时间间隔
             double timeDiff = (sendTime - m_lastMessageTime).GetSeconds();
-            // 只有当时间差大于0时才更新网络状态
             if (timeDiff > 0) {
                 UpdateNetworkState(timeDiff);
             }
         }
         m_lastMessageTime = sendTime;
         
-        // NS_LOG_INFO("broadcast message at time: " << Simulator::Now().GetSeconds() << " s\n\n");
+        NS_LOG_INFO("broadcast message at time: " << Simulator::Now().GetSeconds() << " s\n\n");
         Ptr<Packet> p = Create<Packet>(data, size);
         
         std::vector<Ipv4Address>::iterator iter = m_peersAddresses.begin();
@@ -905,7 +860,7 @@ namespace ns3{
         while (iter != m_peersAddresses.end()) {
             Ptr<Socket> socketClient = m_peersSockets[*iter];
             
-            if (socketClient != nullptr) {  // 使用nullptr而不是IsNull()方法
+            if (socketClient != nullptr) {
                 Simulator::Schedule(Seconds(delay), [socketClient, p]() {
                     socketClient->Send(p);
                 });
@@ -928,12 +883,11 @@ namespace ns3{
 
     float getRandomDelay() {
         NS_LOG_FUNCTION_NOARGS();
-        float delay = (rand() % 6) * 1.0 / 1000;  // 从3改为10，增加最大随机延迟
+        float delay = (rand() % 6) * 1.0 / 1000;
         NS_LOG_DEBUG("生成随机延迟: " << delay << "s");
         return delay;
     }
 
-    // Log information about each node and blockchain info
     void NodeApp::printInformation(){
         NS_LOG_INFO("=============== Information Node(Replica) "<<m_id<<" ===============");
         NS_LOG_INFO("Leader id " << leader_id);
@@ -950,15 +904,12 @@ namespace ns3{
         //NS_LOG_INFO("Request count=> "<<request_count<<"    Pre-prepare count=> "<<preprepare_count<<"   Prepare count=> "<<prepare_count<<"   Commit count=> "<<commit_count<<"   Reply count=> "<<reply_count);
     }
 
-    // 更新网络状态
     void NodeApp::UpdateNetworkState(double delay) {
         NS_LOG_FUNCTION(this);
-        // 记录当前消息延迟
-        if (delay > 0) {  // 只记录有效的延迟值
+        if (delay > 0) {
             RecordMessageDelay(delay);
         }
         
-        // 计算平均延迟
         double avgDelay = 0;
         int count = m_recentDelays.size();
         
@@ -969,19 +920,17 @@ namespace ns3{
             avgDelay /= count;
             m_messageDelay = avgDelay;
             
-            // 根据平均延迟更新网络状态
-            if (avgDelay < 0.001) {  // 小于3ms为良好
+            if (avgDelay < 0.001) {
                 m_networkState = GOOD;
                 m_networkQuality = 90.0;
-            } else if (avgDelay < m_networkCongestionThreshold) {  // 小于10ms为正常
+            } else if (avgDelay < m_networkCongestionThreshold) {
                 m_networkState = NORMAL;
                 m_networkQuality = 70.0;
-            } else {  // 大于等于10ms为拥塞
+            } else {
                 m_networkState = CONGESTED;
                 m_networkQuality = 50.0;
             }
             
-            // 更新自适应阈值
             m_adaptiveThreshold = CalculateAdaptiveThreshold();
             
             NS_LOG_INFO("网络状态更新: 平均延迟=" << avgDelay << "s, 状态=" << (int)m_networkState 
@@ -991,45 +940,39 @@ namespace ns3{
         }
     }
 
-    // 计算自适应阈值
     int NodeApp::CalculateAdaptiveThreshold() {
         NS_LOG_FUNCTION(this);
-        // 确保N已经被正确设置
         if (N <= 0) {
             NS_LOG_ERROR("N值未正确设置，使用默认阈值2");
-            return 2;  // 默认值降低到2
+            return 2;
         }
         
-        // 随着轮次增加，降低阈值
         int baseThreshold;
         if (round_number < 10) {
             baseThreshold = N/3 + 1;
         } else if (round_number < 20) {
-            baseThreshold = N/4 + 1;  // 10-20轮降低阈值
+            baseThreshold = N/4 + 1;
         } else {
-            baseThreshold = N/5 + 1;  // 20轮以上进一步降低阈值
+            baseThreshold = N/5 + 1;
         }
         
-        // 根据网络状态动态调整阈值
         switch (m_networkState) {
             case GOOD:
                 return std::max(baseThreshold, 2);
             case NORMAL:
-                return std::max(baseThreshold - 1, 2);  // 正常网络进一步降低
+                return std::max(baseThreshold - 1, 2);
             case CONGESTED:
-                return std::max(baseThreshold - 2, 2);  // 拥塞网络大幅降低
+                return std::max(baseThreshold - 2, 2);
             default:
                 return std::max(baseThreshold, 2);
         }
     }
 
-    // 获取网络质量
     double NodeApp::GetNetworkQuality() const {
         NS_LOG_FUNCTION(this);
         return m_networkQuality;
     }
 
-    // 设置网络质量
     void NodeApp::SetNetworkQuality(double quality) {
         NS_LOG_FUNCTION(this);
         m_networkQuality = quality;
@@ -1042,28 +985,24 @@ namespace ns3{
         }
     }
 
-    // 获取网络状态
     NetworkState NodeApp::GetNetworkState() const {
         NS_LOG_FUNCTION(this);
         return m_networkState;
     }
 
-    // 计算消息延迟
     double NodeApp::CalculateMessageDelay() {
         NS_LOG_FUNCTION(this);
-        // 随着轮次增加，减少延迟
         double roundFactor = 1.0;
         if (round_number > 10) {
-            roundFactor = 0.8;  // 高轮次时减少延迟
+            roundFactor = 0.8;
         }
         if (round_number > 20) {
-            roundFactor = 0.5;  // 更高轮次时进一步减少延迟
+            roundFactor = 0.5;
         }
         
-        // 根据网络状态计算消息延迟
         switch (m_networkState) {
             case GOOD:
-                return getRandomDelay() * 0.5 * roundFactor;  // 进一步降低延迟
+                return getRandomDelay() * 0.5 * roundFactor;
             case NORMAL:
                 return getRandomDelay() * 0.8 * roundFactor;
             case CONGESTED:
@@ -1073,20 +1012,17 @@ namespace ns3{
         }
     }
 
-    // 记录消息延迟
     void NodeApp::RecordMessageDelay(double delay) {
         NS_LOG_FUNCTION(this);
-        // 保持最近m_maxDelayWindow次的延迟记录
         if (m_recentDelays.size() >= m_maxDelayWindow) {
             m_recentDelays.erase(m_recentDelays.begin());
         }
         m_recentDelays.push_back(delay);
     }
 
-    // 打印网络状态
     void NodeApp::PrintNetworkStatus() {
         NS_LOG_INFO("=============== 网络状态信息 ===============");
-        NS_LOG_INFO("网络状态: " << (int)m_networkState);  // 使用(int)转换枚举值
+        NS_LOG_INFO("网络状态: " << (int)m_networkState);
         NS_LOG_INFO("网络质量: " << m_networkQuality);
         NS_LOG_INFO("消息延迟: " << m_messageDelay);
         NS_LOG_INFO("自适应阈值: " << m_adaptiveThreshold);
@@ -1106,7 +1042,6 @@ namespace ns3{
                 exit(0);
             }
             if (stall_count >= 3 && is_leader == 1) {
-                // 如果连续3次检查都没有进展，且当前节点是领导者，重启共识
                 NS_LOG_WARN("共识停滞，领导者重启共识");
                 Simulator::Schedule(Seconds(0.1), &NodeApp::initiateRound, this);
             }
@@ -1115,7 +1050,6 @@ namespace ns3{
             last_round_number = round_number;
         }
         
-        // 保存事件ID以便稍后取消
         m_checkProgressEvent = Simulator::Schedule(Seconds(5.0), &NodeApp::CheckConsensusProgress, this);
     }
 
@@ -1126,9 +1060,7 @@ namespace ns3{
         
         NS_LOG_INFO("恶意节点" << m_id << "开始发起DOS洪范攻击,目标是主节点" << leader_id);
         NS_LOG_INFO("主节点" << leader_id << "开始检测来自节点" << m_id << "的消息");
-        // 发送多次攻击消息
         for (int i = 0; i < m_dosAttackCount; i++) {
-            // 使用较小的延迟，模拟短时间内的大量请求
             SendDosAttackMessage(m_id);
             DetectDosAttack(m_id);
         }
@@ -1136,13 +1068,10 @@ namespace ns3{
     }
 
     void NodeApp::DetectDosAttack(int attackerId) {        
-        // 获取最近收到的消息
         std::string lastMessage = m_lastReceivedMessage[attackerId];
         
-        // 检查消息是否正确(检查签名)
         bool isValidMessage = (lastMessage[6] == '1');
         
-        // 获取当前时间
         Time now = Simulator::Now();
         m_lastAttackDetectionTime = now;
                 
@@ -1158,39 +1087,33 @@ namespace ns3{
         
         double probability  = 0.988+N*0.0002;
         bool sendValidMessage = (rand() / (RAND_MAX + 1.0)) < probability;
-        // 生成医疗数据
         int dataIndex = round_number % heartDataset.size();
         std::string medicalData = heartDataset[dataIndex].toString();
         if (sendValidMessage) {
-            // 构造正确的消息
-            data[0] = convertIntToChar(1); // 有效值
+            data[0] = convertIntToChar(1);
             data[1] = convertIntToChar(REQUEST);
             data[2] = convertIntToChar(m_id);
             data[3] = convertIntToChar(leader_id);
             data[4] = convertIntToChar(view_number);
-            data[5] = convertIntToChar(m_sequenceNumber++); // 正确的序列号
-            data[6] = '1'; // 添加签名
-            data[7] = medicalData; // 添加医疗数据
+            data[5] = convertIntToChar(m_sequenceNumber++);
+            data[6] = '1';
+            data[7] = medicalData;
 
-            //NS_LOG_INFO("攻击者节点" << m_id << "构造正确消息");
         } else {
-            // 构造错误的消息
-            data[0] = convertIntToChar(rand() % 9); // 随机值
+            data[0] = convertIntToChar(rand() % 9);
             data[1] = convertIntToChar(REQUEST);
             data[2] = convertIntToChar(m_id);
             data[3] = convertIntToChar(leader_id);
-            data[4] = convertIntToChar(rand() % 100); // 随机视图编号
-            data[5] = convertIntToChar(rand() % 100); // 随机序列号
-            data[6] = '0'; // 不添加签名
-            data[7] = medicalData; // 添加医疗数据
+            data[4] = convertIntToChar(rand() % 100);
+            data[5] = convertIntToChar(rand() % 100);
+            data[6] = '0';
+            data[7] = medicalData;
 
             //NS_LOG_INFO("攻击者节点" << m_id << "构造错误消息");
         }
         
-        // 将数组转换为字符串
         std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
         
-        // 发送消息给主节点
         if (m_peersSockets.find(m_peersAddresses[leader_id]) != m_peersSockets.end()) {
             Ptr<Socket> leaderSocket = m_peersSockets[m_peersAddresses[leader_id]];
             std::vector<uint8_t> myVector(dataString.begin(), dataString.end());
@@ -1199,7 +1122,6 @@ namespace ns3{
             Ptr<Packet> p = Create<Packet>(reinterpret_cast<const uint8_t*>(d), dataString.size());
             leaderSocket->Send(p);
             
-            // 保存最近发送的消息用于检测
             m_lastReceivedMessage[m_id] = dataString;
             
             NS_LOG_INFO("攻击者节点" << m_id << "向主节点" << leader_id << "发起了DOS攻击");
@@ -1223,10 +1145,9 @@ namespace ns3{
         m_messageThreshold = messageThreshold;
         m_leaderParalyzed = false;
         m_attackSuccess = false;
-        m_attackDetectionWindow = 1000; // 1秒内检测
+        m_attackDetectionWindow = 1000;
         m_lastAttackDetectionTime = Simulator::Now();
         
-        // 初始化接收攻击计数器
         for (int i = 0; i < N; i++) {
             m_receivedAttackCount[i] = 0;
         }
