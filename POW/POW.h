@@ -20,7 +20,6 @@ class Address;
 class Socket;
 class Packet;
 
-// PoW共识消息类型
 enum POWPhase {
     NEW_BLOCK,         // 0 新区块广播
     BLOCK_REQUEST,     // 1 请求区块
@@ -54,13 +53,11 @@ public:
     NodeApp(void);
     virtual ~NodeApp(void);
     
-    // 确保这些变量存在
     bool is_leader;
     int leader_id;
     int view_number;
     int client_id;
     int sec_num;
-    // 属性
     uint32_t m_id;                                 // 节点ID
     Ptr<Socket> m_socket;                          // 监听套接字
     std::map<Ipv4Address, Ptr<Socket>> m_peersSockets;  // 邻居节点套接字列表
@@ -71,38 +68,32 @@ public:
     int round_number;                              // 共识轮数计数器
     int difficulty;                                // 挖矿难度
     
-    // 区块链数据
     std::vector<Block> blockchain;                 // 区块链
     std::vector<Transaction> pendingTransactions;  // 待处理交易池
     
-    // 性能统计
-    Time round_start_time;                         // 轮次开始时间
-    Time round_end_time;                           // 轮次结束时间
-    Time total_time;                               // 累计总时间
-    Time latency_start_time;                       // 延迟开始时间
-    Time latency_end_time;                         // 延迟结束时间
-    int round_message_count;                       // 当前轮次消息数
-    int total_message_count;                       // 总消息数
-    int message_copies_count;                      // 消息副本数
+    Time round_start_time;
+    Time round_end_time;
+    Time total_time;
+    Time latency_start_time;
+    Time latency_end_time;
+    int round_message_count;
+    int total_message_count;
+    int message_copies_count;
     
-    // 挖矿相关
-    bool mining;                                   // 是否正在挖矿
-    EventId miningEvent;                           // 挖矿事件ID
-    int minedBlocks;                               // 已挖出区块数
-    int receivedBlocks;                            // 已收到区块数
+    bool mining;
+    EventId miningEvent;
+    int minedBlocks;
+    int receivedBlocks;
 
-    // 应用程序生命周期函数
     virtual void StartApplication(void);
     virtual void StopApplication(void);
 
-    // 网络通信函数
     void HandleRead(Ptr<Socket> socket);
     std::string getPacketContent(Ptr<Packet> packet, Address from);
     void SendTX(uint8_t data[], int num);
     void SendTXWithDelay(uint8_t data[], int size, double delay);
     void sendStringMessage(std::string data);
 
-    // PoW共识函数
     void StartMining();                            // 开始挖矿
     void StopMining();                             // 停止挖矿
     void MineBlock();                              // 挖矿主函数
@@ -123,36 +114,29 @@ public:
     void RequestFullChain();                               // 请求完整区块链
     void HandleBlockchain(std::vector<Block> receivedChain); // 处理接收的区块链
     
-    // 控制函数
-    void initiateRound();                          // 开始新一轮共识
-    void printInformation();                       // 打印信息
-    void PrintStatistics();                        // 打印统计信息
+    void initiateRound();
+    void printInformation();
+    void PrintStatistics();
 
     // Network related
     void SetPeersAddresses(std::vector<Ipv4Address> peers);
     void SetNodeId(uint32_t id);
     void SetPeerId(uint32_t id);
 
-    // PoW specific functions
     bool ResolveConflicts();
     std::string CalculateHash(const Block& block);
     std::string CalculateTransactionHash(const Transaction& tx);
 
-    // Node identity
     uint32_t m_peerId;
     
-    // Mining control
     bool m_mining;
     EventId m_miningEvent;
     
-    // Blockchain data
     std::vector<Block> m_blockchain;
     std::vector<Transaction> m_pendingTransactions;
     
-    // PoW difficulty (target: hash must start with this many zeros)
     int m_difficulty;
     int a=300;
-    // Statistics
     int m_minedBlocks;
     int m_receivedBlocks;
     int m_processedTxs;
