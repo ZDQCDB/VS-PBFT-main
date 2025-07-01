@@ -17,7 +17,6 @@ namespace ns3 {
 class Socket;
 class Address;
 
-// PBFTPhase：枚举类型
 enum PBFTPhase {
     CLIENT_CHANGE,  // 0        客户端变更
     NEW_ROUND,      // 1        新回合
@@ -44,7 +43,7 @@ public:
     virtual ~NodeApp (void);
 
     static TypeId GetTypeId (void);
-    uint32_t N; // 可能用于存储节点编号
+    uint32_t N;
 
     // 设置和获取节点相关参数的方法
     void SetPeersAddresses (std::vector<Ipv4Address> peers);
@@ -59,19 +58,16 @@ public:
     uint8_t GetIsLeader() const;
     uint8_t GetClientId() const;
 
-    // Gossip协议相关参数
     void SetGossipFanout(int fanout);
     int GetGossipFanout() const;
     void SetGossipRounds(int rounds);
     int GetGossipRounds() const;
 
-    // 交易相关函数
     void SubmitTransaction(uint32_t transactionId);
     void ConfirmTransaction(uint32_t transactionId);
     double CalculateTPS();
     double CalculateAverageLatency();
 
-    // 其他公共方法
     std::string getPacketContent(Ptr<Packet> packet, Address from);
     void SendTX(uint8_t data[], int num);
     void SendTXWithDelay(unsigned char* data, int size, double delay);
@@ -94,7 +90,7 @@ protected:
     float getRandomDelay();
     void log_message_counts();
 
-public:  // 将需要外部访问的成员变量移到public区域
+public:
     uint8_t m_id;
     uint8_t is_leader;
     uint8_t leader_id;
@@ -116,7 +112,6 @@ private:
     int m_gossipRounds;
     std::set<std::string> m_processedMessages;
 
-    // 性能统计相关变量
     Time m_roundStartTime;
     Time m_roundEndTime;
     Time m_totalTime;
@@ -129,21 +124,19 @@ private:
     std::vector<Time> m_transactionStartTimes;
     std::vector<Time> m_transactionEndTimes;
 
-    // DOS攻击相关参数
-    bool            m_enableDosAttack;                 // 是否启用DOS攻击
-    int             m_dosAttackRound;                  // 在哪一轮发起攻击
-    int             m_dosAttackCount;                  // 攻击次数
-    std::vector<int> m_maliciousNodes;                 // 恶意节点列表
-    std::map<int, int> m_receivedAttackCount;          // 记录每个节点收到的攻击消息数量
-    bool            m_leaderParalyzed;                 // 主节点是否瘫痪
-    bool            m_attackSuccess;                   // 攻击是否成功
-    int             m_messageThreshold;                // 消息阈值，超过此值认为节点瘫痪
-    Time            m_lastAttackDetectionTime;         // 上次检测到攻击的时间
-    int             m_attackDetectionWindow;           // 攻击检测窗口(毫秒)
-    int m_sequenceNumber;  // 添加成员变量
-    std::map<int, std::string> m_lastReceivedMessage;  // 添加成员变量
+    bool            m_enableDosAttack;
+    int             m_dosAttackRound;
+    int             m_dosAttackCount;
+    std::vector<int> m_maliciousNodes;
+    std::map<int, int> m_receivedAttackCount;
+    bool            m_leaderParalyzed;
+    bool            m_attackSuccess;
+    int             m_messageThreshold;
+    Time            m_lastAttackDetectionTime;
+    int             m_attackDetectionWindow;
+    int m_sequenceNumber;
+    std::map<int, std::string> m_lastReceivedMessage;
     
-    // DOS攻击相关函数
     void SetupDosAttack(bool enable, int attackRound, int attackCount, 
                         const std::vector<int>& maliciousNodes, int messageThreshold);
     void LaunchDosAttack(int m_id);
