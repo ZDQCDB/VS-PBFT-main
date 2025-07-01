@@ -28,7 +28,6 @@
 #include <algorithm>
 #include <openssl/sha.h>
 
-//定义了公钥和私钥以及证明的大小，这个事libsodium库所规定的
 const size_t PublicKeySize = 32;
 const size_t SecretKeySize = 64;
 const size_t ProofSize = 96;
@@ -101,8 +100,6 @@ namespace ns3{
         m_transactionStartTimes(),
         m_transactionEndTimes()
     {
-        // 初始化交易数组
-    //for (uint32_t i = 0; i < NETWORK_SIZE; ++i) {
     for (uint32_t i = 0; i < N; ++i) {
             transactions[i].view = 0;
             transactions[i].value = 0;
@@ -116,16 +113,15 @@ namespace ns3{
     }
     Time round_start_time;
     Time round_end_time;
-    Time total_time = Seconds(0); // 用于累加所有轮次的总耗时
+    Time total_time = Seconds(0);
     Time latency_start_time;
     Time latency_end_time;
-    int round_message_count = 0;  // 当前轮次的消息数量
-    int total_message_count = 0;  // 所有轮次的总消息数量
-    int message_copies_count = 0; // 所有消息副本的数量
+    int round_message_count = 0;
+    int total_message_count = 0;
+    int message_copies_count = 0;
     void NodeApp::StartApplication() {
         std::srand(static_cast<unsigned int>(time(0)));
     
-        // 记录模拟器开始时间
         latency_start_time = Simulator::Now();
         NS_LOG_INFO("模拟器开始时间：" << latency_start_time.GetSeconds());
     
@@ -153,7 +149,6 @@ namespace ns3{
         m_socket->SetAllowBroadcast(true);
         NS_LOG_INFO("node" << m_id << " start");
         printInformation();
-        // 确保 m_peersAddresses 不是空的
         if (m_peersAddresses.empty()) {
             NS_LOG_WARN("m_peersAddresses is empty! No peers to connect.");
             return;
@@ -182,8 +177,8 @@ namespace ns3{
         }
         
         // 设置DOS攻击参数（默认禁用）
-        std::vector<int> maliciousNodes = {5, 6}; // 节点5和6是恶意节点
-        SetupDosAttack(false, 30, 1000, maliciousNodes, 20); // 第30轮，发送100次攻击，阈值20
+        std::vector<int> maliciousNodes = {5, 6};
+        SetupDosAttack(false, 30, 1000, maliciousNodes, 20);
 
     }
     
@@ -211,25 +206,20 @@ namespace ns3{
             NS_LOG_INFO("所有共识的总时长：" << total_time.GetSeconds() << " ms.");
             NS_LOG_INFO("交易吞吐量: " << TPS << "tps");
 
-            //计算平均交易时延
             Time totalLantency=latency_end_time-latency_start_time;
-            //double avgLantency = totalLantency.GetSeconds()*NETWORK_SIZE / round_number;
             double avgLantency = totalLantency.GetSeconds()*N / round_number;
 
             NS_LOG_INFO("总时延" << totalLantency.GetSeconds() << "ms.");
             NS_LOG_INFO("平均交易时延：" << avgLantency << "ms");
 
-            //计算消息总数
             NS_LOG_INFO("平均消息副本数量：" << message_copies_count << "次");
 
-            //计算通信开销
             double total_comm_cost = (total_message_count+round_number)*49*1.0/1024;
             NS_LOG_INFO("总消息数量：" << total_message_count << "次");
             NS_LOG_INFO("总通信开销：" << total_comm_cost << "KB");
 
             EvaluateAttackResult();
 
-            //使用ns-3的Stop方法"优雅"地停止模拟器
             Simulator::Stop();
             return;
             
@@ -347,7 +337,6 @@ namespace ns3{
 
                 std::string data[7]; 
 
-                // Which message is this?
                 switch (state){
                     case CLIENT_CHANGE:{
                         /* Handle client change:
@@ -512,8 +501,6 @@ namespace ns3{
                         int index = convertCharToInt(msg[3]);  
                         int count = transactions[index].prepare_vote;
 
-                        // 1. validate: check client id and view number and primary sign
-                        //以下添加了一下if的判断
                             if(convertCharToInt(msg[3]) == client_id && convertCharToInt(msg[4]) == view_number && convertCharToInt(msg[6])==1){
 
                                 // 2. Add prepare message counter and log
@@ -526,9 +513,7 @@ namespace ns3{
                                 NS_LOG_INFO(m_id<<" Voted(prepare) to "<<count<<" messages.");   
                             }
                             // 4. Check reaching to threshold (N/2 + 1)
-                            //if (count >= static_cast<int>(NETWORK_SIZE/2 + 1)){
                             if (count >= static_cast<int>(N/2 + 1)){
-                                // 5. If it reached  to threshold, Reset votes (Not to send commit again!)
                                 transactions[index].prepare_vote=0;
 
                                 // 6. Construct commit message
@@ -570,8 +555,6 @@ namespace ns3{
                         int count = transactions[index].commit_vote;
 
 
-                        // 1. validate: check client id and view number and primary sign       
-                        //以下加一个if判断             
                             if(convertCharToInt(msg[3]) == (client_id) && convertCharToInt(msg[4]) == (view_number) && convertCharToInt(msg[6]) ==1){
                                 // 2. Add prepare message counter and log
                                 commit_count++;
@@ -583,14 +566,10 @@ namespace ns3{
                                 NS_LOG_INFO(m_id<<" Voted(commit) to "<<count<<" messages.");  
                             }
 
-                        // 4. Check reaching to threshold (N/2 + 1)
-                        //if (count >= static_cast<int>(NETWORK_SIZE/2 + 1))
                         if (count >= static_cast<int>(N/2 + 1))
                         {
-                            // 5. If it reached  to threshold, Reset votes (Not to send commit again!)
                             transactions[index].commit_vote=0;
 
-                            // 6. Proccess transaction => x^2 % 10
                             int result = (convertCharToInt(msg[0])*convertCharToInt(msg[0])) % 10;
                             NS_LOG_INFO("Request from "<<client_id<<" done and Result is=> "<<result);
 
@@ -646,23 +625,18 @@ namespace ns3{
                         //
                         NS_LOG_INFO("===========================================================\n\n");
 
-                        // 2. Start a new round after all replys arrived (by a larger delay to make sure last round is finished)
-                        //if(reply_count==NETWORK_SIZE-1){
                         if(reply_count==N-1){
-                            // 记录结束时间
                             round_end_time = Simulator::Now();
                             latency_end_time = Simulator::Now();
                             NS_LOG_WARN("共识结束时间：" << round_end_time.GetSeconds());
                             NS_LOG_WARN("模拟器结束时间：" << latency_end_time.GetSeconds());
-                            // 计算当前轮次的耗时
                             Time round_duration = round_end_time - round_start_time;
-                            total_time += round_duration;  // 累加总耗时
+                            total_time += round_duration;
                             NS_LOG_INFO("Round completed in " << round_duration.GetSeconds() << " seconds.");
                             
-                            // 计算当前轮次的消息数量（根据各阶段的消息数量进行加和）
                             round_message_count = request_count + preprepare_count + prepare_count + commit_count + reply_count;
                             message_copies_count += preprepare_count + prepare_count + commit_count;
-                            total_message_count += round_message_count;  // 累加总消息数量
+                            total_message_count += round_message_count;
                             NS_LOG_WARN("request阶段：" << request_count);
                             NS_LOG_WARN("preprepare阶段：" << preprepare_count);
                             NS_LOG_WARN("prepare阶段：" << prepare_count);
@@ -710,8 +684,6 @@ namespace ns3{
 
                         NS_LOG_INFO("Leader Id of "<<m_id<<" changed to => "<< leader_id<<"\n\n"); 
 
-                        // 3. Start a new round when all nodes handled view change
-                        //if(view_is_changed==NETWORK_SIZE){
                         if(view_is_changed==N){
                             Simulator::Schedule(Seconds(getRandomDelay())*10, &NodeApp::initiateRound, this);
                         }
@@ -796,12 +768,10 @@ namespace ns3{
     }
 
     /*******************************SEND*******************************/
-    // Send Packet to related socket
     void NodeApp::SendPacket(Ptr<Socket> socketClient, Ptr<Packet> p) {
         socketClient->Send(p);
     }
 
-    // Convert string message to unit_8 type and broadcast it
     void NodeApp::sendStringMessage(std::string message) {
         std::vector<uint8_t> myVector(message.begin(), message.end());
         uint8_t* d = &myVector[0];
@@ -821,33 +791,26 @@ namespace ns3{
         }
     }
 
-    // Broadcast transactions to all neighbor nodes
     void NodeApp::SendTX(uint8_t data[], int size){
         double delay = getRandomDelay();
         SendTXWithDelay(data, size, delay);
     }
     
-    // Broadcast transactions to all neighbor nodes
     void NodeApp::SendTXWithDelay(unsigned char* data, int size, double delay) {
-        // [新增] 检查 m_peersSockets 是否为空
         if (m_peersSockets.empty()) {
             NS_LOG_ERROR("Cannot send message, m_peersSockets is empty!");
             return;
         }
         Ptr<Packet> p;
         p = Create<Packet>(
-            // [修改] 类型转换 data 为 const uint8_t*
             reinterpret_cast<const uint8_t*>(data), size
         );
         TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
-        // [修改] 遍历方式从迭代器改为基于范围的 for 循环
         for (const auto& peerPair : m_peersSockets) {
-            // [新增] 检查单个 socket 是否为空
             if (!peerPair.second) {
                 NS_LOG_WARN("Skipping invalid socket for peer");
                 continue;
             }
-            // [保留] 获取 socket
             Ptr<Socket> socketClient = peerPair.second;
             Simulator::Schedule(Seconds(delay), &NodeApp::SendPacket, this, socketClient, p);
         }
@@ -868,7 +831,6 @@ namespace ns3{
         return (rand() % 6) * 1.0 / 1000;
     }
 
-    // Log information about each node and blockchain info
     void NodeApp::printInformation(){
         NS_LOG_INFO("=============== Information Node(Replica) "<<m_id<<" ===============");
         NS_LOG_INFO("Leader id " << leader_id);
@@ -887,10 +849,8 @@ namespace ns3{
         std::vector<Ipv4Address> selectedPeers;
         std::vector<Ipv4Address> availablePeers = m_peersAddresses;
         
-        // 随机打乱可用节点列表
         std::random_shuffle(availablePeers.begin(), availablePeers.end());
         
-        // 选择 m_gossipFanout 个节点
         int peersToSelect = std::min(m_gossipFanout, static_cast<int>(availablePeers.size()));
         selectedPeers.assign(availablePeers.begin(), availablePeers.begin() + peersToSelect);
         
@@ -898,7 +858,6 @@ namespace ns3{
     }
 
     bool NodeApp::ShouldRelay(const std::string& messageId) {
-        // 如果消息已处理，则不再转发
         if (m_processedMessages.find(messageId) != m_processedMessages.end()) {
             return false;
         }
@@ -925,7 +884,6 @@ namespace ns3{
         return m_gossipRounds;
     }
 
-    // 性能指标计算方法
     double NodeApp::CalculateAverageLatency() {
         if (m_transactionStartTimes.empty() || m_transactionEndTimes.empty()) {
             return 0.0;
@@ -956,7 +914,6 @@ namespace ns3{
         return m_transactionStartTimes.size() / totalTime.GetSeconds();
     }
 
-    // 设置和获取节点相关参数的方法
     void NodeApp::SetPeersAddresses(std::vector<Ipv4Address> peers) {
         m_peersAddresses = peers;
     }
@@ -1004,9 +961,7 @@ namespace ns3{
         
         NS_LOG_INFO("恶意节点" << m_id << "开始发起DOS洪范攻击,目标是主节点" << leader_id);
         NS_LOG_INFO("主节点" << leader_id << "开始检测来自节点" << m_id << "的消息");
-        // 发送多次攻击消息
         for (int i = 0; i < m_dosAttackCount; i++) {
-            // 使用较小的延迟，模拟短时间内的大量请求
             SendDosAttackMessage(m_id);
             DetectDosAttack(m_id);
         }
@@ -1014,13 +969,10 @@ namespace ns3{
     }
 
     void NodeApp::DetectDosAttack(int attackerId) {        
-        // 获取最近收到的消息
         std::string lastMessage = m_lastReceivedMessage[attackerId];
         
-        // 检查消息是否正确(检查签名)
         bool isValidMessage = (lastMessage[6] == '1');
         
-        // 获取当前时间
         Time now = Simulator::Now();
         m_lastAttackDetectionTime = now;
                 
@@ -1038,29 +990,25 @@ namespace ns3{
         bool sendValidMessage = (rand() / (RAND_MAX + 1.0)) < probability;
 
         if (sendValidMessage) {
-            // 构造正确的消息
-            data[0] = convertIntToChar(1); // 有效值
+            data[0] = convertIntToChar(1);
             data[1] = convertIntToChar(REQUEST);
             data[2] = convertIntToChar(m_id);
             data[3] = convertIntToChar(leader_id);
             data[4] = convertIntToChar(view_number);
-            data[5] = convertIntToChar(m_sequenceNumber++); // 正确的序列号
-            data[6] = '1'; // 添加签名
+            data[5] = convertIntToChar(m_sequenceNumber++);
+            data[6] = '1';
         } else {
-            // 构造错误的消息
-            data[0] = convertIntToChar(rand() % 9); // 随机值
+            data[0] = convertIntToChar(rand() % 9);
             data[1] = convertIntToChar(REQUEST);
             data[2] = convertIntToChar(m_id);
             data[3] = convertIntToChar(leader_id);
-            data[4] = convertIntToChar(rand() % 100); // 随机视图编号
-            data[5] = convertIntToChar(rand() % 100); // 随机序列号
-            data[6] = '0'; // 不添加签名
+            data[4] = convertIntToChar(rand() % 100);
+            data[5] = convertIntToChar(rand() % 100);
+            data[6] = '0';
         }
         
-        // 将数组转换为字符串
         std::string dataString = std::accumulate(std::begin(data), std::end(data), std::string());
         
-        // 发送消息给主节点
         if (m_peersSockets.find(m_peersAddresses[leader_id]) != m_peersSockets.end()) {
             Ptr<Socket> leaderSocket = m_peersSockets[m_peersAddresses[leader_id]];
             std::vector<uint8_t> myVector(dataString.begin(), dataString.end());
@@ -1069,7 +1017,6 @@ namespace ns3{
             Ptr<Packet> p = Create<Packet>(reinterpret_cast<const uint8_t*>(d), dataString.size());
             leaderSocket->Send(p);
             
-            // 保存最近发送的消息用于检测
             m_lastReceivedMessage[m_id] = dataString;
             
             NS_LOG_INFO("攻击者节点" << m_id << "向主节点" << leader_id << "发起了DOS攻击");
@@ -1093,10 +1040,9 @@ namespace ns3{
         m_messageThreshold = messageThreshold;
         m_leaderParalyzed = false;
         m_attackSuccess = false;
-        m_attackDetectionWindow = 1000; // 1秒内检测
+        m_attackDetectionWindow = 1000;
         m_lastAttackDetectionTime = Simulator::Now();
         
-        // 初始化接收攻击计数器
         for (int i = 0; i < N; i++) {
             m_receivedAttackCount[i] = 0;
         }
