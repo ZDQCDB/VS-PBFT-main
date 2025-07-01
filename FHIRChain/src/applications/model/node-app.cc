@@ -112,7 +112,6 @@ void NodeApp::StartApplication() {
     total_rounds = rounds.Get();
     enable_audit = audit.Get();
     
-    // 记录开始时间
     latency_start_time = Simulator::Now();
     NS_LOG_INFO("Simulation start time: " << latency_start_time.GetSeconds());
     NS_LOG_INFO("Node " << m_id << " Configuration parameters: Total rounds=" << total_rounds << ", Total nodes=" << N << ", Audit enabled=" << (enable_audit ? "Yes" : "No"));
@@ -169,10 +168,8 @@ void NodeApp::StartApplication() {
         iter++;
     }
     
-    // 加载FHIR资源
-    LoadFHIRResources("/home/dz/ns-allinone-3.40/ns-3.40/UCI_Heart_Disease_Dataset.csv");
+    LoadFHIRResources("数据集路径");
     
-    // 只有领导者才启动共识
     if (is_leader == 1) {
         NS_LOG_INFO("Node " << m_id << " is the main node, will start the first round of consensus");
         Simulator::Schedule(Seconds(getRandomDelay()), &NodeApp::initiateRound, this);
@@ -186,7 +183,6 @@ void NodeApp::StopApplication() {
 
 // 加载FHIR资源数据
 void NodeApp::LoadFHIRResources(const std::string& filePath) {
-    // 清理之前的数据集
     for (auto* resource : fhirDataset) {
         delete resource;
     }
@@ -195,11 +191,9 @@ void NodeApp::LoadFHIRResources(const std::string& filePath) {
     observationDataset.clear();
     heartDiseaseDataset.clear();
     
-    // 打开CSV文件
     std::ifstream file(filePath);
     if (!file.is_open()) {
         NS_LOG_ERROR("Cannot open heart disease data file: " << filePath);
-        // 如果无法打开文件，创建一些示例数据以防止程序崩溃
         for (int i = 0; i < 5; i++) {
             FHIRPatient patient;
             patient.id = "patient-" + std::to_string(i);
@@ -220,12 +214,10 @@ void NodeApp::LoadFHIRResources(const std::string& filePath) {
         return;
     }
     
-    // 读取CSV文件的每一行
     std::string line;
     int lineCount = 0;
     
     while (std::getline(file, line)) {
-        // 跳过可能的标题行
         if (lineCount == 0 && (line.find("age") != std::string::npos || 
                                line.find("sex") != std::string::npos)) {
             lineCount++;
@@ -236,23 +228,19 @@ void NodeApp::LoadFHIRResources(const std::string& filePath) {
         std::string token;
         std::vector<std::string> tokens;
         
-        // 解析CSV格式数据
         while (std::getline(iss, token, ',')) {
             tokens.push_back(token);
         }
         
-        // 确保有足够的数据字段
         if (tokens.size() >= 14) {
             FHIRHeartDisease heartData;
             
-            // 设置基本FHIR资源信息
             heartData.id = "heart-disease-" + std::to_string(lineCount);
             heartData.versionId = "1";
             heartData.lastUpdated = "2023-07-" + std::to_string(rand() % 30 + 1);
             heartData.type = HEART_DISEASE;
             
             try {
-                // 设置心脏病特定数据
                 heartData.age = std::stoi(tokens[0]);
                 heartData.sex = std::stoi(tokens[1]);
                 heartData.cp = std::stoi(tokens[2]);
@@ -268,7 +256,6 @@ void NodeApp::LoadFHIRResources(const std::string& filePath) {
                 heartData.thal = std::stoi(tokens[12]);
                 heartData.target = std::stoi(tokens[13]);
                 
-                // 添加到数据集
                 heartDiseaseDataset.push_back(heartData);
                 fhirDataset.push_back(new FHIRHeartDisease(heartData));
                 
@@ -286,14 +273,11 @@ void NodeApp::LoadFHIRResources(const std::string& filePath) {
         lineCount++;
     }
     
-    // 记录加载完成的数据统计
     file.close();
     
-    // 如果没有加载到数据，创建少量示例数据
     if (heartDiseaseDataset.empty()) {
         NS_LOG_WARN("Unable to load valid heart disease data, temporary data created");
         
-        // 创建少量患者数据
         for (int i = 0; i < 5; i++) {
             FHIRPatient patient;
             patient.id = "patient-" + std::to_string(i);
@@ -320,11 +304,10 @@ void NodeApp::LoadFHIRResources(const std::string& filePath) {
 std::string NodeApp::GenerateAuditTrail(const FHIRResource& resource, const std::string& action) {
     std::stringstream ss;
     
-    // 添加时间戳
     time_t now = time(nullptr);
     std::string timestamp(ctime(&now));
     if (!timestamp.empty() && timestamp[timestamp.size()-1] == '\n') {
-        timestamp.pop_back(); // 移除末尾的换行符
+        timestamp.pop_back();
     }
     
     // 生成审计追踪格式：时间戳,节点ID,资源类型,资源ID,操作
@@ -346,7 +329,7 @@ std::string NodeApp::GenerateAuditTrail(const FHIRResource& resource, const std:
             // 添加风险评估
             int riskFactors = 0;
             if (heartData->age > 55) riskFactors++;
-            if (heartData->sex == 1) riskFactors++;  // 男性风险更高
+            if (heartData->sex == 1) riskFactors++;
             if (heartData->chol > 240) riskFactors++;
             if (heartData->trestbps > 140) riskFactors++;
             if (heartData->fbs == 1) riskFactors++;
@@ -356,7 +339,6 @@ std::string NodeApp::GenerateAuditTrail(const FHIRResource& resource, const std:
         }
     }
     
-    // 增加数字签名部分（在实际应用中应使用密码学算法）
     ss << ",signed:" << m_id << "-" << sec_num << "-" << view_number;
     
     return ss.str();
@@ -365,30 +347,24 @@ std::string NodeApp::GenerateAuditTrail(const FHIRResource& resource, const std:
 /*******************************INTERACTION*******************************/
 
 void NodeApp::initiateRound(void) {
-    // 检查是否达到轮次上限
     if (round_number == total_rounds) {
         NS_LOG_INFO(round_number << " Round Finished Successfully!");
         
-        // 计算TPS
         double TPS = round_number * 1000 / (total_time.GetSeconds() * N);
         NS_LOG_INFO("Total consensus duration: " << total_time.GetSeconds() << " ms.");
         NS_LOG_INFO("Transaction throughput: " << TPS << "tps");
 
-        // 计算平均交易时延
         Time totalLatency = latency_end_time - latency_start_time;
         double avgLatency = totalLatency.GetSeconds() * N / round_number;
         NS_LOG_INFO("Total latency: " << totalLatency.GetSeconds() << "ms.");
         NS_LOG_INFO("Average transaction latency: " << avgLatency << "ms");
 
-        // 计算消息总数
         NS_LOG_INFO("Average message copies count: " << message_copies_count << " times");
 
-        // 计算通信开销
         double total_comm_cost = (total_message_count + round_number) * 68 * 1.0 / 1024;
         NS_LOG_INFO("Total message count: " << total_message_count << " times");
         NS_LOG_INFO("Total communication cost: " << total_comm_cost << "KB");
         
-        // 添加审计追踪统计信息
         if (enable_audit && !audit_trail_times.empty()) {
             double total_audit_time = 0.0;
             double max_audit_time = 0.0;
@@ -421,7 +397,6 @@ void NodeApp::initiateRound(void) {
     NS_LOG_INFO("Node " << m_id << " current status: Leader=" << (is_leader ? "Yes" : "No") << ", current leader ID=" << leader_id);
     NS_LOG_INFO("==========================================");
 
-    // 偶尔触发视图变更
     if (rand() % 3 == 0 && view_is_changed == 0) {
         NS_LOG_INFO("Trigger view change");
         changeView();
@@ -472,7 +447,7 @@ void NodeApp::initiateRound(void) {
     // 设置消息类型为新轮次
     data[1] = convertIntToChar(NEW_ROUND);
 
-    // 广播新轮次消息（带较大延迟）
+    // 广播新轮次消息
     dataString = std::accumulate(std::begin(data), std::end(data), std::string());
     NS_LOG_INFO("Message(NEW_ROUND) Broadcasts => " << dataString);
     
@@ -508,7 +483,6 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
 
             NS_LOG_INFO(state << "======>" << msg << "-=====>" << m_id << "====>" << client_id);
     
-            // 客户端不处理部分消息类型
             if (m_id == client_id_uint && state != REPLY && state != NEW_ROUND && state != CLIENT_CHANGE) {
                 return;
             }               
@@ -525,13 +499,10 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                 }
                 case NEW_ROUND: {
                     // 处理新轮次开始
-                    
-                    // 只有客户端处理NEW-ROUND
                     if (m_id != client_id_uint) {
                         return;
                     }
                     
-                    // 记录开始时间
                     round_start_time = Simulator::Now();
                     NS_LOG_WARN("Consensus start time: " << round_start_time.GetSeconds());
 
@@ -555,7 +526,6 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                 }
                 case REQUEST: {
                     // 处理请求
-                    
                     // 只有领导者处理请求
                     if (is_leader == 0) {
                         return;
@@ -563,7 +533,6 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
 
                     NS_LOG_INFO("Node " << GetNode()->GetId() << " Received Message: " << msg);
 
-                    // 开始审计追踪计时
                     if (enable_audit) {
                         audit_trail_start_time = Simulator::Now();
                         NS_LOG_INFO("Audit trail start time: " << audit_trail_start_time.GetSeconds());
@@ -586,19 +555,15 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                     // 签名交易
                     data[6] = '1';
                     
-                    // 如果启用审计，创建审计跟踪
                     std::string auditTrail = "";
                     if (enable_audit && !fhirDataset.empty()) {
                         // 选择一个随机的FHIR资源进行处理
                         int resourceIndex = rand() % fhirDataset.size();
                         std::string action = "read"; // 或 "create", "update", "delete"
                         
-                        // 生成审计跟踪
                         auditTrail = GenerateAuditTrail(*fhirDataset[resourceIndex], action);
                         
-                        // 存储审计信息到交易中
                         int index = convertCharToInt(data[5][0]);
-                        // 确保索引在有效范围内
                         if (index >= 0 && index < arraySize) {
                             transactions[index].auditInfo = auditTrail;
                             transactions[index].resourceId = fhirDataset[resourceIndex]->id;
@@ -608,7 +573,6 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                         }
                     }
 
-                    // 设置消息类型为预准备
                     data[1] = convertIntToChar(PRE_PREPARED);     
 
                     // 广播预准备消息
@@ -678,7 +642,6 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                     
                     int count = transactions[index].prepare_vote;
 
-                    // 验证消息
                     if (convertCharToInt(msg[3]) == client_id && 
                         convertCharToInt(msg[4]) == view_number && 
                         convertCharToInt(msg[6]) == 1) {
@@ -692,11 +655,9 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                         count++;
                         NS_LOG_INFO(m_id << " Voted(prepare) to " << count << " messages. Need " << (N/2 + 1) << " votes");   
                         
-                        // 检查投票是否达到阈值 (N/2 + 1)的位置放在这里，确保只有投票有效时才检查
                         if (count >= N/2 + 1) {
                             NS_LOG_INFO("Node " << m_id << " Prepare stage vote threshold reached, preparing to send COMMIT message");
                             
-                            // 重置投票（防止再次发送提交）
                             transactions[index].prepare_vote = 0;
 
                             // 构造提交消息
@@ -737,7 +698,6 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                     
                     int count = transactions[index].commit_vote;
 
-                    // 验证消息
                     if (convertCharToInt(msg[3]) == (client_id) && 
                         convertCharToInt(msg[4]) == (view_number) && 
                         convertCharToInt(msg[6]) == 1) {
@@ -750,24 +710,18 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                         count++;
                         NS_LOG_INFO(m_id << " Voted(commit) to " << count << " messages. Need " << (N/2 + 1) << " votes");  
                         
-                        // 检查是否达到阈值 (N/2 + 1)
                         if (count >= N/2 + 1) {
                             NS_LOG_INFO("Node " << m_id << " Commit stage vote threshold reached, preparing to send REPLY message");
                             
-                            // 重置投票（防止再次发送提交）
                             transactions[index].commit_vote = 0;
 
-                            // 处理交易 => x^2 % 10
                             int result = (convertCharToInt(msg[0]) * convertCharToInt(msg[0])) % 10;
                             
-                            // 添加FHIR资源处理 - 优先选择心脏病数据
                             FHIRResource* resource = nullptr;
                             std::string actionType = "ACCESS";
                             
-                            // 选择一个合适的心脏病数据
                             if (!heartDiseaseDataset.empty()) {
                                 int resourceIndex = round_number % heartDiseaseDataset.size();
-                                // 查找对应的指针
                                 for (auto* res : fhirDataset) {
                                     if (res->type == HEART_DISEASE && 
                                         res->id == heartDiseaseDataset[resourceIndex].id) {
@@ -776,11 +730,9 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                                     }
                                 }
                                 
-                                // 对于心脏病数据，我们执行更详细的处理
                                 if (resource) {
                                     FHIRHeartDisease* heartData = dynamic_cast<FHIRHeartDisease*>(resource);
                                     if (heartData) {
-                                        // 根据交易结果执行不同操作
                                         if (result % 3 == 0) {
                                             actionType = "READ";
                                             NS_LOG_INFO("Read heart disease data record: " << heartData->id);
@@ -797,12 +749,10 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                                     }
                                 }
                             } else {
-                                // 如果没有心脏病数据，回退到普通FHIR资源
                                 int resourceIndex = round_number % fhirDataset.size();
                                 resource = fhirDataset[resourceIndex];
                             }
                             
-                            // 创建最终审计追踪
                             std::string auditTrail;
                             if (enable_audit && resource) {
                                 auditTrail = GenerateAuditTrail(*resource, actionType);
@@ -862,38 +812,31 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
                     NS_LOG_INFO("Client " << client_id << " Received transaction result => " << msg[0] << " from Node " << msg[2]);
                     NS_LOG_INFO("===========================================================");
 
-                    // 在所有回复到达后开始新一轮（使用更大的延迟确保上一轮已完成）
-                    // 注意：客户端收到N-1个节点的回复即可开始新一轮（包括自己一共N个节点）
                     int requiredReplies = N - 1;
                     NS_LOG_INFO("Client needs to receive " << requiredReplies << " replies, currently received " << reply_count);
                     
                     if (reply_count >= requiredReplies) {
                         NS_LOG_INFO("Client " << client_id << " Received enough replies (" << reply_count << "/" << requiredReplies << "), preparing to enter next round");
                         
-                        // 记录审计追踪结束时间（如果启用）
                         if (enable_audit) {
                             audit_trail_end_time = Simulator::Now();
                             double audit_trail_time = (audit_trail_end_time - audit_trail_start_time).GetSeconds();
-                            //audit_trail_time = audit_trail_time * (1.0 + log(N) / 10.0);
                             audit_trail_times.push_back(audit_trail_time);
                             NS_LOG_INFO("Audit trail generation time: " << audit_trail_time << " ms");
                         }
 
-                        // 记录结束时间
                         round_end_time = Simulator::Now();
                         latency_end_time = Simulator::Now();
                         NS_LOG_WARN("Consensus end time: " << round_end_time.GetSeconds());
                         NS_LOG_WARN("Simulation end time: " << latency_end_time.GetSeconds());
                         
-                        // 计算当前轮次的耗时
                         Time round_duration = round_end_time - round_start_time;
-                        total_time += round_duration;  // 累加总耗时
+                        total_time += round_duration;
                         NS_LOG_INFO("Completed round consensus, duration: " << round_duration.GetSeconds() << " seconds");
                         
-                        // 计算当前轮次的消息数量
                         round_message_count = request_count + preprepare_count + prepare_count + commit_count + reply_count;
                         message_copies_count += preprepare_count + prepare_count + commit_count;
-                        total_message_count += round_message_count;  // 累加总消息数量
+                        total_message_count += round_message_count;
                         NS_LOG_INFO("Round consensus message statistics: request=" << request_count << ", preprepare=" << preprepare_count 
                                    << ", prepare=" << prepare_count << ", commit=" << commit_count << ", reply=" << reply_count);
                         
@@ -902,7 +845,6 @@ void NodeApp::HandleRead(Ptr<Socket> socket) {
 
                         NS_LOG_INFO("Preparing to start next round consensus (Current round: " << round_number << ", Target round: " << total_rounds << ")");
                         
-                        // 安排下一轮共识（使用随机延迟确保网络稳定）
                         double delay = getRandomDelay() * 10;
                         NS_LOG_INFO("Scheduling next round consensus, delay: " << delay << " seconds");
                         Simulator::Schedule(Seconds(delay), &NodeApp::initiateRound, this);
@@ -1023,7 +965,7 @@ void NodeApp::SendTX(uint8_t data[], int size) {
     SendTXWithDelay(data, size, delay);
 }
 
-// 向所有邻居节点广播交易（带延迟）
+// 向所有邻居节点广播交易
 void NodeApp::SendTXWithDelay(uint8_t data[], int size, double delay) {
     // 检查m_peersSockets是否为空
     if (m_peersSockets.empty()) {
@@ -1091,7 +1033,6 @@ void log_message_counts() {
 }
 
 void NodeApp::PrintStatistics() {
-    // 打印统计信息，可选实现
 }
 
 } // namespace ns3
